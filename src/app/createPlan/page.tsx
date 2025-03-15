@@ -39,6 +39,15 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+type Meal = {
+  name: string;
+  calories: number;
+  protein: number;
+  fats: number;
+  carbs: number;
+};
+
+
 type UserData = {
   age: string;
   weight: string;
@@ -281,11 +290,34 @@ function Page() {
   
     // 🔹 **Add Meal Plan**
     const mealPlan = {
-      breakfast: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
-      lunch: userData.dietaryPreference === "keto" ? "Grilled Chicken + Avocado" : "Chicken + Rice",
-      dinner: userData.dietaryPreference === "mediterranean" ? "Salmon + Quinoa" : "Steak + Sweet Potatoes",
-      snacks: ["Greek Yogurt", "Almonds", "Protein Shake"],
+      breakfast: {
+        name: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
+        calories: 400,
+        protein: 20,
+        fats: 10,
+        carbs: 50,
+      },
+      lunch: {
+        name: userData.dietaryPreference === "keto" ? "Grilled Chicken + Avocado" : "Chicken + Rice",
+        calories: 600,
+        protein: 45,
+        fats: 20,
+        carbs: 60,
+      },
+      dinner: {
+        name: userData.dietaryPreference === "mediterranean" ? "Salmon + Quinoa" : "Steak + Sweet Potatoes",
+        calories: 700,
+        protein: 50,
+        fats: 25,
+        carbs: 65,
+      },
+      snacks: [
+        { name: "Greek Yogurt", calories: 150, protein: 10, fats: 5, carbs: 15 },
+        { name: "Almonds", calories: 200, protein: 6, fats: 18, carbs: 6 },
+        { name: "Protein Shake", calories: 250, protein: 30, fats: 5, carbs: 10 },
+      ],
     };
+    
   
     return {
       mealPlan, // 🔹 Now included
