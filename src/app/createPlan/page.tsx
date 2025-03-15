@@ -100,6 +100,16 @@ interface User {
   reEditWeight?: any;
 }
 
+interface nutritionChartData {
+  totalNutrition: {
+    calories: number;
+    protein: number;
+    fats: number;
+    carbs: number;
+  };
+  mealPlan?: any; // Add mealPlan (use proper type instead of `any` if possible)
+}
+
 
 function Page() {
   const [step, setStep] = useState(1);
