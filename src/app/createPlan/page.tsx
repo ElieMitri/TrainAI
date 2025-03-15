@@ -479,7 +479,8 @@ function Page() {
     let storedEditDate = userData.reEditWeight;
 
     if (storedEditDate?.toDate) {
-      storedEditDate = storedEditDate.toDate();
+      storedEditDate = storedEditDate?.toDate?.() || storedEditDate;
+
     } else if (typeof storedEditDate === "string") {
       storedEditDate = new Date(storedEditDate);
     }
