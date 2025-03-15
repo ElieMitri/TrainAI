@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect } from "react";
 import {
   Activity,
@@ -14,7 +12,6 @@ import {
 } from "lucide-react";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
-// import './styles.css';
 import {
   setDoc,
   doc,
@@ -39,16 +36,47 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-type Meal = {
+interface Exercise {
+  name: string;
+  sets: string;
+  reps: string;
+}
+
+interface WorkoutDay {
+  day: string;
+  exercises: Exercise[];
+}
+
+interface MealItem {
   name: string;
   calories: number;
   protein: number;
-  fats: number;
   carbs: number;
-};
+  fats: number;
+  items?: string[];
+}
 
+interface MealPlan {
+  breakfast: MealItem;
+  lunch: MealItem;
+  dinner: MealItem;
+  snacks: MealItem[];
+}
 
-type UserData = {
+interface TotalNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+}
+
+interface GeneratedPlan {
+  workoutPlan: WorkoutDay[];
+  mealPlan: MealPlan;
+  totalNutrition: TotalNutrition;
+}
+
+interface UserData {
   age: string;
   weight: string;
   height: string;
@@ -58,67 +86,22 @@ type UserData = {
   dietaryPreference: string;
   activityLevel: string;
   workoutLocation: string;
-};
-
-type Exercise = {
-  name: string;
-  sets: string;
-  reps: string;
-};
-
-type WorkoutDay = {
-  day: string;
-  exercises: Exercise[];
-};
-
-type Meal = {
-  name: string;
-  items: string[];
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-};
-
-type GeneratedPlan = {
-  workoutPlan: WorkoutDay[];
-  mealPlan: {
-    breakfast: Meal;
-    lunch: Meal;
-    dinner: Meal;
-    snacks: Meal[];
-  };
-  totalNutrition: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  };
-};
+  reEditWeight?: Timestamp;
+  [key: string]: any; // For dynamic properties from Firestore
+}
 
 interface User {
   uid: string;
-  displayName: string;
-  email: string;
+  displayName: string | null;
+  email: string | null;
   weight?: number;
   createdDetails?: boolean;
   paid?: boolean;
-  date?: any;
-  lastLogin?: any;
-  editedWeight?: any;
-  reEditWeight?: any;
+  date?: Timestamp;
+  lastLogin?: Timestamp;
+  editedWeight?: Timestamp;
+  reEditWeight?: Timestamp;
 }
-
-interface nutritionChartData {
-  totalNutrition: {
-    calories: number;
-    protein: number;
-    fats: number;
-    carbs: number;
-  };
-  mealPlan?: any; // Add mealPlan (use proper type instead of `any` if possible)
-}
-
 
 function Page() {
   const [step, setStep] = useState(1);
@@ -136,11 +119,8 @@ function Page() {
     activityLevel: "",
     workoutLocation: "",
   });
-  
 
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(
-    null
-  );
+  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
   const handleInputChange = (
@@ -150,7 +130,7 @@ function Page() {
   };
 
   const generateWorkoutPlan = (userData: UserData): WorkoutDay[] => {
-    const exercises = {
+    const exercises: Record<string, Exercise[]> = {
       chest: [
         { name: "Bench Press", sets: "3", reps: "8-12" },
         { name: "Incline Dumbbell Press", sets: "3", reps: "10-12" },
@@ -205,31 +185,28 @@ function Page() {
     return workoutPlan;
   };
 
-  const generateMealPlan = (userData: UserData) => {
+  const generateMealPlan = (userData: UserData): { mealPlan: MealPlan; totalNutrition: TotalNutrition } => {
     const weight = parseFloat(userData.weight);
     const height = parseFloat(userData.height);
     const age = parseFloat(userData.age);
     const isMale = userData.gender === "male";
-  
+
     let bmr = isMale
       ? 88.362 + 13.397 * weight + 4.799 * height - 5.677 * age
       : 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age;
-  
-    const activityMultipliers = {
+
+    const activityMultipliers: Record<string, number> = {
       sedentary: 1.2,
       light: 1.375,
       moderate: 1.55,
       very: 1.725,
       extra: 1.9,
     };
-  
-    const activityMultiplier =
-      activityMultipliers[
-        userData.activityLevel as keyof typeof activityMultipliers
-      ] || 1.2;
-  
+
+    const activityMultiplier = activityMultipliers[userData.activityLevel] || 1.2;
+
     let totalCalories = bmr * activityMultiplier;
-  
+
     switch (userData.fitnessGoal) {
       case "weight-loss":
         totalCalories *= 0.8;
@@ -238,11 +215,11 @@ function Page() {
         totalCalories *= 1.1;
         break;
     }
-  
+
     let protein = (totalCalories * 0.3) / 4;
     let fats = (totalCalories * 0.25) / 9;
     let carbs = (totalCalories * 0.45) / 4;
-  
+
     switch (userData.dietaryPreference) {
       case "keto":
         fats = (totalCalories * 0.7) / 9;
@@ -287,9 +264,8 @@ function Page() {
         carbs = (totalCalories * 0.4) / 4;
         break;
     }
-  
-    // 🔹 **Add Meal Plan**
-    const mealPlan = {
+
+    const mealPlan: MealPlan = {
       breakfast: {
         name: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
         calories: 400,
@@ -317,10 +293,9 @@ function Page() {
         { name: "Protein Shake", calories: 250, protein: 30, fats: 5, carbs: 10 },
       ],
     };
-    
-  
+
     return {
-      mealPlan, // 🔹 Now included
+      mealPlan,
       totalNutrition: {
         calories: Math.round(totalCalories),
         protein: Math.round(protein),
@@ -329,7 +304,6 @@ function Page() {
       },
     };
   };
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -344,10 +318,7 @@ function Page() {
     const { mealPlan, totalNutrition } = generateMealPlan(userData);
     setGeneratedPlan({ workoutPlan, mealPlan, totalNutrition });
 
-    console.log(totalNutrition);
-
     try {
-      // 🔹 Save user details to Firestore under the user's UID
       await setDoc(doc(db, "personDetails", user.uid), {
         displayName: user.displayName,
         date: serverTimestamp(),
@@ -366,8 +337,8 @@ function Page() {
         createdDetails: "true",
       });
 
-      const now = new Date(); // Get the current date
-      now.setMonth(now.getMonth() + 1); // Add one month
+      const now = new Date();
+      now.setMonth(now.getMonth() + 1);
 
       const newWeightEntry = {
         date: serverTimestamp(),
@@ -382,13 +353,6 @@ function Page() {
 
       await addDoc(weightProgressSubCollectionRef, newWeightEntry);
 
-      // 🔹 Save weight progress with the user’s UID as the document ID
-      // await setDoc(doc(db, "weightProgress", user.uid), {
-      //   date: serverTimestamp(),
-      //   weight: userData.weight,
-      // });
-
-      // 🔹 Save macronutrients with the user's UID as the document ID
       await setDoc(doc(db, "personMacros", user.uid), {
         displayName: user.displayName,
         date: serverTimestamp(),
@@ -398,16 +362,14 @@ function Page() {
         carbs: totalNutrition.carbs,
       });
     } catch (error) {
-      console.error("Error creating account:", error.message);
-      alert(error.message);
-    } finally {
-      // setLoading(false);
+      console.error("Error creating account:", (error as Error).message);
+      alert((error as Error).message);
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      setUser(currentUser as User | null);
       console.log("User:", currentUser);
 
       if (currentUser) {
@@ -416,23 +378,23 @@ function Page() {
           const userDocSnap = await getDoc(userDocRef);
 
           if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data()); // ✅ Update userData immediately
-            if(userDocSnap.data().createdDetails) {
-              setPutDetails(true)
+            const data = userDocSnap.data();
+            setUserData(data as UserData);
+            if (data.createdDetails) {
+              setPutDetails(true);
             } else {
-              setPutDetails(false)
+              setPutDetails(false);
             }
-            
           } else {
             console.log("No such user found!");
-            setUserData(null);
+            setUserData(null as any);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
-          setUserData(null);
+          setUserData(null as any);
         }
       } else {
-        setUserData(null);
+        setUserData(null as any);
       }
     });
 
@@ -469,11 +431,11 @@ function Page() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         setUser(null);
-        setUserData(null); // ✅ Clear user data on logout to prevent errors
+        setUserData(null as any);
         return;
       }
 
-      setUser(currentUser);
+      setUser(currentUser as User);
 
       try {
         const userDocRef = doc(db, "users", currentUser.uid);
@@ -485,22 +447,19 @@ function Page() {
             setPutDetails(true);
           }
 
-          // ✅ Ensure the user has a valid subscription or trial
-          if (
-            userData.paid 
-          ) {
-            setUserData(userData); // ✅ Update state only if user meets criteria
+          if (userData.paid) {
+            setUserData(userData as UserData);
           } else {
             console.log("User does not have an active subscription or trial.");
-            setUserData(null);
+            setUserData(null as any);
           }
         } else {
           console.log("No such user found!");
-          setUserData(null);
+          setUserData(null as any);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        setUserData(null);
+        setUserData(null as any);
       }
     });
 
@@ -509,30 +468,21 @@ function Page() {
 
   useEffect(() => {
     if (!userData?.reEditWeight) {
-      // console.log("❌ No edit date found");
       return;
     }
 
-    const now = new Date(); // Current date & time
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Normalize today's date
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    let storedEditDate = userData.reEditWeight; // Get stored edit date
+    let storedEditDate = userData.reEditWeight;
 
-    // Debugging: Log stored edit date
-    // console.log("📌 Stored Edit Date (Before Conversion):", storedEditDate);
-
-    // Convert Firestore Timestamp or String to JavaScript Date
     if (storedEditDate?.toDate) {
-      storedEditDate = storedEditDate.toDate(); // Firestore Timestamp to Date
+      storedEditDate = storedEditDate.toDate();
     } else if (typeof storedEditDate === "string") {
-      storedEditDate = new Date(storedEditDate); // Convert string to Date
+      storedEditDate = new Date(storedEditDate);
     }
 
-    // Debugging: Log stored edit date after conversion
-    // console.log("📌 Stored Edit Date (After Conversion):", storedEditDate);
-
     if (isNaN(storedEditDate.getTime())) {
-      // console.error("🚨 Invalid storedEditDate:", storedEditDate);
       return;
     }
 
@@ -540,22 +490,14 @@ function Page() {
       storedEditDate.getFullYear(),
       storedEditDate.getMonth(),
       storedEditDate.getDate()
-    ); // Normalize stored edit date
+    );
 
-    // Debugging: Log both dates for comparison
-    // console.log("📌 Today's Date:", today);
-    // console.log("📌 Edit Date:", editDate);
-
-    // Check if today is the edit date
     if (today.getTime() === editDate.getTime()) {
-      // console.log("✅ Editing is allowed today!");
       setEditAllowed(true);
-      // Enable edit functionality here (e.g., set state)
     } else {
-      // console.log("❌ Editing is not allowed yet.");
       setEditAllowed(false);
     }
-  }, [userData]); // Ensure the correct dependency is used
+  }, [userData]);
 
   return (
     <div className="min-h-screen">
@@ -576,9 +518,6 @@ function Page() {
           <div className="card">
             <div style={{ textAlign: "center" }}>
               <h1 className="heading-lg">Your Personal AI Fitness Journey</h1>
-              {/* <p className="text-muted">
-                Get customized meal and workout plans tailored just for you
-              </p> */}
             </div>
 
             {!generatedPlan ? (
@@ -808,47 +747,7 @@ function Page() {
               </>
             ) : (
               <div className="plan-container">
-                {/* <div className="plan-section">
-                  <h2 className="plan-title">Workout Plan</h2>
-                  {generatedPlan.workoutPlan.map((day, index) => (
-                    <div key={index} className="workout-day">
-                      <h3 className="day-title">{day.day}</h3>
-                      <ul className="exercise-list">
-                        {day.exercises.map((exercise, i) => (
-                          <li key={i} className="exercise-item">
-                            <span>{exercise.name}</span>
-                            <span>{exercise.sets} x {exercise.reps}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div> */}
-
                 <div className="plan-section">
-                  {/* <h2 className="plan-title">Meal Plan</h2>
-                  {Object.entries(generatedPlan.mealPlan).map(([key, meal]) => {
-                    if (key === "snacks") {
-                      return meal.map((snack, i) => (
-                        <div key={`snack-${i}`} className="meal-plan">
-                          <h3 className="meal-title">{snack.name}</h3>
-                          <div className="meal-items">
-                            {snack.items.join(", ")}
-                          </div>
-                        </div>
-                      ));
-                    }
-                    const mealData = meal as Meal;
-                    return (
-                      <div key={key} className="meal-plan">
-                        <h3 className="meal-title">{mealData.name}</h3>
-                        <div className="meal-items">
-                          {mealData.items.join(", ")}
-                        </div>
-                      </div>
-                    );
-                  })} */}
-
                   <div className="nutrition-chart">
                     <h3 className="chart-title">Daily Nutrition Breakdown</h3>
                     <Pie data={nutritionChartData} />
