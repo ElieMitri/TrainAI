@@ -201,11 +201,11 @@ function Page() {
     const height = parseFloat(userData.height);
     const age = parseFloat(userData.age);
     const isMale = userData.gender === "male";
-
+  
     let bmr = isMale
       ? 88.362 + 13.397 * weight + 4.799 * height - 5.677 * age
       : 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age;
-
+  
     const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
@@ -213,13 +213,14 @@ function Page() {
       very: 1.725,
       extra: 1.9,
     };
-
+  
     const activityMultiplier =
       activityMultipliers[
         userData.activityLevel as keyof typeof activityMultipliers
       ] || 1.2;
+  
     let totalCalories = bmr * activityMultiplier;
-
+  
     switch (userData.fitnessGoal) {
       case "weight-loss":
         totalCalories *= 0.8;
@@ -228,72 +229,75 @@ function Page() {
         totalCalories *= 1.1;
         break;
     }
-
+  
     let protein = (totalCalories * 0.3) / 4;
     let fats = (totalCalories * 0.25) / 9;
     let carbs = (totalCalories * 0.45) / 4;
-
+  
     switch (userData.dietaryPreference) {
       case "keto":
-        fats = (totalCalories * 0.7) / 9; // 70% fats
-        protein = (totalCalories * 0.25) / 4; // 25% protein
-        carbs = (totalCalories * 0.05) / 4; // 5% carbs
+        fats = (totalCalories * 0.7) / 9;
+        protein = (totalCalories * 0.25) / 4;
+        carbs = (totalCalories * 0.05) / 4;
         break;
-
       case "high-protein":
-        protein = (totalCalories * 0.4) / 4; // 40% protein
-        fats = (totalCalories * 0.3) / 9; // 30% fats
-        carbs = (totalCalories * 0.3) / 4; // 30% carbs
+        protein = (totalCalories * 0.4) / 4;
+        fats = (totalCalories * 0.3) / 9;
+        carbs = (totalCalories * 0.3) / 4;
         break;
-
       case "vegan":
-        protein = (totalCalories * 0.25) / 4; // 25% protein
-        fats = (totalCalories * 0.2) / 9; // 20% fats
-        carbs = (totalCalories * 0.55) / 4; // 55% carbs
+        protein = (totalCalories * 0.25) / 4;
+        fats = (totalCalories * 0.2) / 9;
+        carbs = (totalCalories * 0.55) / 4;
         break;
-
       case "vegetarian":
-        protein = (totalCalories * 0.3) / 4; // 30% protein
-        fats = (totalCalories * 0.25) / 9; // 25% fats
-        carbs = (totalCalories * 0.45) / 4; // 45% carbs
+        protein = (totalCalories * 0.3) / 4;
+        fats = (totalCalories * 0.25) / 9;
+        carbs = (totalCalories * 0.45) / 4;
         break;
-
       case "paleo":
-        protein = (totalCalories * 0.35) / 4; // 35% protein
-        fats = (totalCalories * 0.35) / 9; // 35% fats
-        carbs = (totalCalories * 0.3) / 4; // 30% carbs
+        protein = (totalCalories * 0.35) / 4;
+        fats = (totalCalories * 0.35) / 9;
+        carbs = (totalCalories * 0.3) / 4;
         break;
-
       case "low-carb":
-        protein = (totalCalories * 0.35) / 4; // 35% protein
-        fats = (totalCalories * 0.4) / 9; // 40% fats
-        carbs = (totalCalories * 0.25) / 4; // 25% carbs
+        protein = (totalCalories * 0.35) / 4;
+        fats = (totalCalories * 0.4) / 9;
+        carbs = (totalCalories * 0.25) / 4;
         break;
-
       case "mediterranean":
-        protein = (totalCalories * 0.3) / 4; // 30% protein
-        fats = (totalCalories * 0.35) / 9; // 35% fats (healthy fats)
-        carbs = (totalCalories * 0.35) / 4; // 35% carbs
+        protein = (totalCalories * 0.3) / 4;
+        fats = (totalCalories * 0.35) / 9;
+        carbs = (totalCalories * 0.35) / 4;
         break;
-
       case "balanced":
       case "no-preference":
       default:
-        protein = (totalCalories * 0.3) / 4; // 30% protein
-        fats = (totalCalories * 0.3) / 9; // 30% fats
-        carbs = (totalCalories * 0.4) / 4; // 40% carbs
+        protein = (totalCalories * 0.3) / 4;
+        fats = (totalCalories * 0.3) / 9;
+        carbs = (totalCalories * 0.4) / 4;
         break;
     }
-
+  
+    // 🔹 **Add Meal Plan**
+    const mealPlan = {
+      breakfast: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
+      lunch: userData.dietaryPreference === "keto" ? "Grilled Chicken + Avocado" : "Chicken + Rice",
+      dinner: userData.dietaryPreference === "mediterranean" ? "Salmon + Quinoa" : "Steak + Sweet Potatoes",
+      snacks: ["Greek Yogurt", "Almonds", "Protein Shake"],
+    };
+  
     return {
+      mealPlan, // 🔹 Now included
       totalNutrition: {
-        calories: Math.round(totalCalories), // 🔹 Rounds to the nearest whole number
+        calories: Math.round(totalCalories),
         protein: Math.round(protein),
         fats: Math.round(fats),
         carbs: Math.round(carbs),
       },
     };
   };
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
