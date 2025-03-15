@@ -87,6 +87,20 @@ type GeneratedPlan = {
   };
 };
 
+interface User {
+  uid: string;
+  displayName: string;
+  email: string;
+  weight?: number;
+  createdDetails?: boolean;
+  paid?: boolean;
+  date?: any;
+  lastLogin?: any;
+  editedWeight?: any;
+  reEditWeight?: any;
+}
+
+
 function Page() {
   const [step, setStep] = useState(1);
   const [allowed, setAllowed] = useState(false);
@@ -103,11 +117,13 @@ function Page() {
     activityLevel: "",
     workoutLocation: "",
   });
+  
 
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(
     null
   );
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
