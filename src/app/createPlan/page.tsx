@@ -107,7 +107,7 @@ function Page() {
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(
     null
   );
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState(null);
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
