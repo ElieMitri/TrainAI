@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect } from "react";
 import {
   Activity,
@@ -89,7 +87,7 @@ interface UserData {
   activityLevel: string;
   workoutLocation: string;
   reEditWeight?: Timestamp;
-  [key: string]: any; // For dynamic properties from Firestore
+  [key: string]: any;
 }
 
 interface User {
@@ -345,7 +343,7 @@ function Page() {
       const newWeightEntry = {
         date: serverTimestamp(),
         weight: userData.weight,
-        reEditDate: now,
+        reEditDate: Timestamp.fromDate(now), // Convert Date to Timestamp
       };
 
       const weightProgressSubCollectionRef = collection(
@@ -478,24 +476,16 @@ function Page() {
 
     let storedEditDate = userData.reEditWeight;
 
-    if (storedEditDate?.toDate) {
-      storedEditDate = storedEditDate?.toDate?.() || storedEditDate;
+    // Convert Firestore Timestamp to JavaScript Date
+    const editDate = storedEditDate.toDate();
 
-    } else if (typeof storedEditDate === "string") {
-      storedEditDate = new Date(storedEditDate);
-    }
-
-    if (isNaN(storedEditDate.getTime())) {
-      return;
-    }
-
-    const editDate = new Date(
-      storedEditDate.getFullYear(),
-      storedEditDate.getMonth(),
-      storedEditDate.getDate()
+    const normalizedEditDate = new Date(
+      editDate.getFullYear(),
+      editDate.getMonth(),
+      editDate.getDate()
     );
 
-    if (today.getTime() === editDate.getTime()) {
+    if (today.getTime() === normalizedEditDate.getTime()) {
       setEditAllowed(true);
     } else {
       setEditAllowed(false);
