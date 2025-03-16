@@ -59,21 +59,6 @@ ChartJS.register(
   Legend
 );
 
-type GeneratedPlan = {
-  workoutPlan: WorkoutDay[];
-  mealPlan: {
-    breakfast: Meal;
-    lunch: Meal;
-    dinner: Meal;
-    snacks: Meal[];
-  };
-  totalNutrition: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  };
-};
 
 function Page() {
   const [step, setStep] = useState(1);
@@ -92,7 +77,7 @@ function Page() {
     workoutLocation: "",
   });
 
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(
+  const [generatedPlan, setGeneratedPlan] = useState(
     null
   );
   const [user, setUser] = useState<User | null>(null);
@@ -100,12 +85,12 @@ function Page() {
   const [macros, setMacros] = useState<User | null>(null);
   const [weightProgress, setWeightProgress] = useState<User | null>(null);
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e
   ) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {

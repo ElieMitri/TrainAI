@@ -37,21 +37,7 @@ import {
 } from "firebase/auth";
 import Head from "next/head";
 
-import PaymentModal from "../app/components/Modal";
-
-
-type UserData = {
-  age: string;
-  weight: string;
-  height: string;
-  gender: string;
-  fitnessGoal: string;
-  dietaryPreference: string;
-  activityLevel: string;
-  workoutLocation: string;
-};
-
-type ModalType = "signIn" | "tryFree" | null;
+import PaymentModal from "./components/Modal";
 
 function Modal({ isOpen, onClose, type, setActiveModal, setSubscribed }) {
   if (!isOpen) return null;

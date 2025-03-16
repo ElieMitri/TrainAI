@@ -14,29 +14,15 @@ import {
   Link,
 } from "lucide-react";
 
-interface Meal {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
-
-interface DailyPlan {
-  breakfast: Meal;
-  lunch: Meal;
-  dinner: Meal;
-  snacks: Meal[];
-}
 
 function page() {
-  const [calories, setCalories] = useState<number>(2000);
-  const [dietType, setDietType] = useState<string>("balanced");
-  const [mealPlan, setMealPlan] = useState<DailyPlan | null>(null);
+  const [calories, setCalories] = useState(2000);
+  const [dietType, setDietType] = useState("balanced");
+  const [mealPlan, setMealPlan] = useState(null);
 
   const generateMealPlan = () => {
     // This is a mock meal plan - in a real app, this would come from an API
-    const mockMealPlan: DailyPlan = {
+    const mockMealPlan = {
       breakfast: {
         name: "Oatmeal with Berries",
         calories: 350,
