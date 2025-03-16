@@ -39,7 +39,14 @@ import Head from "next/head";
 
 import PaymentModal from "./components/Modal";
 
-function Modal({ isOpen, onClose, type, setActiveModal, setSubscribed }) {
+function Modal({
+  isOpen,
+  onClose,
+  type,
+  setActiveModal,
+  setSubscribed,
+  setNotSubscribed,
+}) {
   if (!isOpen) return null;
 
   const [loading, setLoading] = useState(false); // 🔹 Added loading state
@@ -75,15 +82,30 @@ function Modal({ isOpen, onClose, type, setActiveModal, setSubscribed }) {
         { merge: true }
       );
 
-      console.log("User signed in:", user);
-      onClose(); // Close modal (optional)
+      // 🔹 Fetch user data (optional, if needed)
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        // console.log("User data:", userSnap.data());
+        if (userSnap.data().paid) {
+          setSubscribed(true);
+        } else {
+          setSubscribed(false);
+          setNotSubscribed(true);
+        }
+      } else {
+        // console.log("User document does not exist!");
+      }
+
+      // console.log("User signed in:", user);
+      onClose(); // Close modal if applicable
     } catch (error) {
       console.error("Login error:", error.message);
       alert(error.message);
     } finally {
       setLoading(false);
-      // setSubscribed(true);
-      document.body.style.overflowY = "auto"; // Disable scrolling
+      document.body.style.overflowY = "auto"; // Restore scrolling
     }
   }
 
@@ -122,10 +144,10 @@ function Modal({ isOpen, onClose, type, setActiveModal, setSubscribed }) {
         paid: false,
       });
 
-      console.log("Account created successfully!");
+      // console.log("Account created successfully!");
       onClose(); // Close modal (optional)
     } catch (error) {
-      console.error("Error creating account:", error.message);
+      // console.error("Error creating account:", error.message);
       alert(error.message);
     } finally {
       setLoading(false);
@@ -209,7 +231,7 @@ function Modal({ isOpen, onClose, type, setActiveModal, setSubscribed }) {
                   setActiveModal("tryFree");
                 }}
               >
-                Sign up 
+                Sign up
               </a>
             </p>
           ) : (
@@ -264,7 +286,7 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      console.log("User:", currentUser);
+      // console.log("User:", currentUser);
 
       if (currentUser) {
         try {
@@ -273,13 +295,13 @@ function App() {
 
           if (userDocSnap.exists()) {
             setUserData(userDocSnap.data()); // ✅ Update userData immediately
-            console.log("User data:", userDocSnap.data());
+            // console.log("User data:", userDocSnap.data());
           } else {
-            console.log("No such user found!");
+            // console.log("No such user found!");
             setUserData(null);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          // console.error("Error fetching user data:", error);
           setUserData(null);
         }
       } else {
@@ -366,7 +388,7 @@ function App() {
   async function signOut() {
     try {
       await firebaseSignOut(auth);
-      console.log("User signed out successfully.");
+      // console.log("User signed out successfully.");
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -429,11 +451,11 @@ function App() {
   const logout = async () => {
     try {
       await signOut(auth);
-      console.log("User signed out successfully.");
+      // console.log("User signed out successfully.");
       setOpenSettingsModal(false);
       setSubscribed(false);
     } catch (error) {
-      console.error("Error signing out:", error);
+      // console.error("Error signing out:", error);
     }
   };
 
@@ -459,11 +481,11 @@ function App() {
             setNotSubscribed(true);
           }
         } else {
-          console.log("No such user found!");
+          // console.log("No such user found!");
           setUserData(null);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        // console.error("Error fetching user data:", error);
         setUserData(null);
       }
     });
@@ -483,7 +505,7 @@ function App() {
         reEditWeight: now,
       });
 
-      console.log("updated!");
+      // console.log("updated!");
     } catch (error) {
       console.error(error);
     }
@@ -491,7 +513,7 @@ function App() {
 
   useEffect(() => {
     if (!userData?.reEditWeight) {
-      console.log("❌ No edit date found");
+      // console.log("❌ No edit date found");
       return;
     }
 
@@ -501,7 +523,7 @@ function App() {
     let storedEditDate = userData.reEditWeight; // Get stored edit date
 
     // Debugging: Log stored edit date
-    console.log("📌 Stored Edit Date (Before Conversion):", storedEditDate);
+    // console.log("📌 Stored Edit Date (Before Conversion):", storedEditDate);
 
     // Convert Firestore Timestamp or String to JavaScript Date
     if (storedEditDate?.toDate) {
@@ -511,10 +533,10 @@ function App() {
     }
 
     // Debugging: Log stored edit date after conversion
-    console.log("📌 Stored Edit Date (After Conversion):", storedEditDate);
+    // console.log("📌 Stored Edit Date (After Conversion):", storedEditDate);
 
     if (isNaN(storedEditDate.getTime())) {
-      console.error("🚨 Invalid storedEditDate:", storedEditDate);
+      // console.error("🚨 Invalid storedEditDate:", storedEditDate);
       return;
     }
 
@@ -525,23 +547,23 @@ function App() {
     ); // Normalize stored edit date
 
     // Debugging: Log both dates for comparison
-    console.log("📌 Today's Date:", today);
-    console.log("📌 Edit Date:", editDate);
+    // console.log("📌 Today's Date:", today);
+    // console.log("📌 Edit Date:", editDate);
 
     // Check if today is the edit date
     if (today.getTime() === editDate.getTime()) {
-      console.log("✅ Editing is allowed today!");
+      // console.log("✅ Editing is allowed today!");
       setEditAllowed(true);
       // Enable edit functionality here (e.g., set state)
     } else {
-      console.log("❌ Editing is not allowed yet.");
+      // console.log("❌ Editing is not allowed yet.");
       setEditAllowed(false);
     }
   }, [userData]); // Ensure the correct dependency is used
 
   async function editOrAddWeight() {
     if (!weightAdded) {
-      console.error("Weight is empty or null!");
+      // console.error("Weight is empty or null!");
       return;
     }
 
@@ -595,14 +617,14 @@ function App() {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        console.log("Updated existing weight entry for this month.");
+        // console.log("Updated existing weight entry for this month.");
       } else {
         // Create a new weight entry
         await addDoc(clientWeightRef, {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        console.log("Added new weight entry.");
+        // console.log("Added new weight entry.");
       }
 
       // Update user document
@@ -612,7 +634,7 @@ function App() {
         // reEditWeight: nextMonth,
       });
 
-      console.log("User weight updated!");
+      // console.log("User weight updated!");
     } catch (error) {
       console.error("Error updating weight:", error);
     }
@@ -640,7 +662,7 @@ function App() {
         <Settings strokeWidth={1.5} className="settings" onClick={openModal} />
       ) : (
         // fallback content if userData or userData.paid is not available
-       <></>
+        <></>
       )}
       {paymentModalOpen ? (
         <PaymentModal setPaymentModalOpen={setPaymentModalOpen} />
@@ -651,45 +673,67 @@ function App() {
         <title>TrainifAI</title>
       </Head>
       {openSettingsModal ? (
-        <div className="modal-overlay">
-          <div className="modal">
-            <button className="modal-close" onClick={closeModal}>
-              X
+        <div className="settings-modal-overlay">
+          <div className="settings-modal-container">
+            <button
+              className="settings-modal-close-button"
+              onClick={closeModal}
+            >
+              <span aria-hidden="true">&times;</span>
             </button>
-            <div className="modal-header">
-              <h2 className="modal-title">Settings</h2>
-              <h4 className="settingsContent">Name: {user.displayName}</h4>
-              <h4 className="settingsContent">Email: {user.email}</h4>
-              <h4 className="settingsContent">
-                Password:{" "}
-                <button className="btn btn-primary">Edit Password</button>
-              </h4>
-              {/* {editAllowed ? ( */}
-              <h4 className="settingsContentWeight">
-                <input
-                  type="number"
-                  value={weightAdded}
-                  className="form-inputModal"
-                  onChange={(e) => setWeightAdded(e.target.value)}
-                  placeholder="Weight"
-                />
-                <button className="btn btn-primary" onClick={editOrAddWeight}>
-                  Edit Weight
+            <div className="settings-modal-content">
+              <h2 className="settings-modal-heading">Account Settings</h2>
+
+              <div className="settings-information-section">
+                <div className="settings-information-item">
+                  <span className="settings-information-label">Name:</span>
+                  <span className="settings-information-value">
+                    {user.displayName}
+                  </span>
+                </div>
+
+                <div className="settings-information-item">
+                  <span className="settings-information-label">Email:</span>
+                  <span className="settings-information-value">
+                    {user.email}
+                  </span>
+                </div>
+
+                <div className="settings-information-item">
+                  <span className="settings-information-label">Password:</span>
+                  <button className="settings-action-button settings-password-button">
+                    Update Password
+                  </button>
+                </div>
+
+                <div className="settings-information-item">
+                  <span className="settings-information-label">Weight:</span>
+                  <div className="settings-weight-control">
+                    <input
+                      type="number"
+                      value={weightAdded}
+                      className="settings-weight-input"
+                      onChange={(e) => setWeightAdded(e.target.value)}
+                      placeholder="Weight"
+                    />
+                    <button
+                      className="settings-action-button settings-weight-button"
+                      onClick={editOrAddWeight}
+                    >
+                      Update Weight
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings-modal-footer">
+                <button
+                  onClick={logout}
+                  className="settings-action-button settings-logout-button"
+                >
+                  Logout <LogOut />
                 </button>
-              </h4>
-
-              {/* ) : (
-                <h4 className="settingsContentWeight2">
-                  Cannot edit until{" "}
-                  {userData.reEditWeight?.toDate
-                    ? userData.reEditWeight.toDate().toLocaleDateString()
-                    : "Unknown Date"}
-                </h4>
-              )} */}
-
-              <button onClick={logout} className="btn btn-primary">
-                Logout <LogOut />
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -704,6 +748,7 @@ function App() {
         setActiveModal={setActiveModal}
         setSubscribed={setSubscribed}
         setWeightAdded={setWeightAdded}
+        setNotSubscribed={setNotSubscribed}
       />
 
       <nav className="nav">

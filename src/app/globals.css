@@ -86,7 +86,6 @@ body {
   width: 2rem;
   height: 2rem;
   color: var(--primary);
-  
 }
 
 .nav-title {
@@ -320,7 +319,6 @@ body {
   margin-right: 15px;
 }
 
-
 .form-input:focus,
 .form-select:focus {
   outline: none;
@@ -343,7 +341,6 @@ body {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
 }
-
 
 /* Features Grid */
 .features-grid {
@@ -1223,8 +1220,6 @@ footer {
   background-color: #130f2b;
 }
 
-
-
 .main-wrapper {
   max-width: 1200px;
   margin: 2rem auto;
@@ -1410,7 +1405,6 @@ footer {
   margin-bottom: 0.5rem;
 }
 
-
 .plan-container {
   display: grid;
   grid-template-columns: 1fr;
@@ -1538,7 +1532,6 @@ footer {
   flex-direction: column;
 }
 
-
 /* Base styles */
 .payment-container {
   font-family: Arial, sans-serif;
@@ -1546,7 +1539,7 @@ footer {
 
 /* Button styles */
 .payment-button {
-  background-color: #3B82F6;
+  background-color: #3b82f6;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1558,7 +1551,7 @@ footer {
 }
 
 .payment-button:hover {
-  background-color: #2563EB;
+  background-color: #2563eb;
 }
 
 /* Modal styles */
@@ -1608,7 +1601,7 @@ footer {
   background: none;
   border: none;
   cursor: pointer;
-  color: #9CA3AF;
+  color: #9ca3af;
   /* padding: 4px; */
   display: flex;
   align-items: center;
@@ -1619,7 +1612,7 @@ footer {
 }
 
 .close-button:hover {
-  color: #4B5563;
+  color: #4b5563;
   background-color: rgba(0, 0, 0, 0);
 }
 
@@ -1658,7 +1651,7 @@ label {
 .input-field {
   width: 100%;
   padding: 10px;
-  border: 1px solid #D1D5DB;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 16px;
   box-sizing: border-box;
@@ -1666,7 +1659,7 @@ label {
 
 .input-field:focus {
   outline: none;
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
@@ -1697,9 +1690,8 @@ label {
 .submit-button:hover {
   /* background-color: #2563EB; */
 
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
-  
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
 input[type="radio"].radio-input {
@@ -1744,7 +1736,7 @@ input[type="radio"].radio-input:checked::before {
 
 .paypal-message p {
   margin: 0;
-  color: #4B5563;
+  color: #4b5563;
   font-size: 14px;
 }
 
@@ -1765,7 +1757,7 @@ input[type="radio"].radio-input:checked::before {
 
 .learn-more-content {
   padding: 16px;
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 4px;
   margin-top: 16px;
 }
@@ -1780,7 +1772,7 @@ input[type="radio"].radio-input:checked::before {
 .learn-more-text {
   font-size: 14px;
   line-height: 1.5;
-  color: #4B5563;
+  color: #4b5563;
   margin: 0;
 }
 
@@ -1788,7 +1780,7 @@ input[type="radio"].radio-input:checked::before {
   max-width: 1200px;
   margin: 0 auto;
   /* padding: 2rem; */
-  display: flex;
+  /* display: flex; */
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -1829,8 +1821,6 @@ input[type="radio"].radio-input:checked::before {
   border-radius: 4px;
   font-size: 1rem;
 }
-
-
 
 .meal-plan-display {
   display: grid;
@@ -1896,11 +1886,11 @@ input[type="radio"].radio-input:checked::before {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
   margin: 20px;
-  display: flex;
+  /* display: flex; */
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  max-width: 700px;
+  /* max-width: 700px; */
 }
 
 .input-group {
@@ -1939,7 +1929,6 @@ button:hover {
   color: white;
   border: none;
 } */
-
 
 .workout-plan-display {
   margin-top: 2rem;
@@ -1996,4 +1985,171 @@ button:hover {
   color: #c3c3c3;
   font-size: 1.1rem;
   font-weight: 600;
+}
+
+/* Settings Modal Overlay */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Settings Modal Container */
+.settings-modal-container {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 500px;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Close Button */
+.settings-modal-close-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  transition: 300ms ease all;
+}
+
+.settings-modal-close-button:hover {
+  /* background-color: #f3f4f6; */
+  color: #c6c6c6;
+}
+
+/* Modal Content */
+.settings-modal-content {
+  background-color: rgb(27, 21, 61);
+  padding: 24px;
+}
+
+/* Modal Heading */
+.settings-modal-heading {
+  color: #9f9f9f;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Information Section */
+.settings-information-section {
+  margin-bottom: 24px;
+}
+
+/* Information Item */
+.settings-information-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-information-item:last-child {
+  border-bottom: none;
+}
+
+/* Information Labels and Values */
+.tn {
+  color: #c1c1c1;
+  font-weight: 500;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.settings-information-value {
+  color: #959595;
+  font-weight: 400;
+}
+
+/* Weight Control Group */
+.settings-weight-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-grow: 1;
+}
+
+/* Weight Input */
+.settings-weight-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  flex-grow: 1;
+  max-width: 120px;
+}
+
+.settings-weight-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Action Buttons */
+.settings-action-button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.settings-action-button:hover {
+  background-color: var(--primary-dark);
+}
+
+.settings-password-button,
+.settings-weight-button {
+  white-space: nowrap;
+}
+
+.settings-information-label {
+  color: rgb(190, 190, 190);
+  margin-right: 20px;
+}
+
+/* Modal Footer */
+.settings-modal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Logout Button Specific */
+.settings-logout-button {
+  background-color: #ef4444;
+}
+
+.settings-logout-button:hover {
+  background-color: #dc2626;
 }
