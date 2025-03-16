@@ -237,7 +237,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [editAllowed, setEditAllowed] = useState(false);
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
-  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [activeModal, setActiveModal] = useState(null);
   const [userData, setUserData] = useState({
     age: "",
     weight: "",
