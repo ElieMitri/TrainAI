@@ -65,7 +65,7 @@ function Page() {
   const [lineData, setLineData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [labels, setLabels] = useState([]);
-  const [userData, setUserData] = useState<UserData>({
+  const [userData, setUserData] = useState({
     age: "",
     weight: "",
     height: "",
@@ -80,10 +80,10 @@ function Page() {
   const [generatedPlan, setGeneratedPlan] = useState(
     null
   );
-  const [user, setUser] = useState<User | null>(null);
-  const [chartProgress, setChartProgress] = useState<User | null>(null);
-  const [macros, setMacros] = useState<User | null>(null);
-  const [weightProgress, setWeightProgress] = useState<User | null>(null);
+  const [user, setUser] = useState(null);
+  const [chartProgress, setChartProgress] = useState(null);
+  const [macros, setMacros] = useState(null);
+  const [weightProgress, setWeightProgress] = useState(null);
   const handleInputChange = (
     e
   ) => {
