@@ -437,8 +437,8 @@ body {
 
 .modal-close {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 15px;
+  right: 25px;
   font-size: 28px;
   background: none;
   border: none;
