@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect } from "react";
 import {
   Activity,
@@ -38,79 +36,12 @@ import {
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-interface Exercise {
-  name: string;
-  sets: string;
-  reps: string;
-}
-
-interface WorkoutDay {
-  day: string;
-  exercises: Exercise[];
-}
-
-interface MealItem {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  items?: string[];
-}
-
-interface MealPlan {
-  breakfast: MealItem;
-  lunch: MealItem;
-  dinner: MealItem;
-  snacks: MealItem[];
-}
-
-interface TotalNutrition {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
-
-interface GeneratedPlan {
-  workoutPlan: WorkoutDay[];
-  mealPlan: MealPlan;
-  totalNutrition: TotalNutrition;
-}
-
-interface UserData {
-  age: string;
-  weight: string;
-  height: string;
-  days: string;
-  gender: string;
-  fitnessGoal: string;
-  dietaryPreference: string;
-  activityLevel: string;
-  workoutLocation: string;
-  reEditWeight?: Timestamp;
-  [key: string]: any;
-}
-
-interface User {
-  uid: string;
-  displayName: string | null;
-  email: string | null;
-  weight?: number;
-  createdDetails?: boolean;
-  paid?: boolean;
-  date?: Timestamp;
-  lastLogin?: Timestamp;
-  editedWeight?: Timestamp;
-  reEditWeight?: Timestamp;
-}
-
 function Page() {
   const [step, setStep] = useState(1);
   const [allowed, setAllowed] = useState(false);
   const [editAllowed, setEditAllowed] = useState(false);
   const [putDetails, setPutDetails] = useState(false);
-  const [userData, setUserData] = useState<UserData>({
+  const [userData, setUserData] = useState({
     age: "",
     weight: "",
     height: "",
@@ -122,17 +53,15 @@ function Page() {
     workoutLocation: "",
   });
 
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [generatedPlan, setGeneratedPlan] = useState(null);
+  const [user, setUser] = useState(null);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleInputChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
   };
 
-  const generateWorkoutPlan = (userData: UserData): WorkoutDay[] => {
-    const exercises: Record<string, Exercise[]> = {
+  const generateWorkoutPlan = (userData) => {
+    const exercises = {
       chest: [
         { name: "Bench Press", sets: "3", reps: "8-12" },
         { name: "Incline Dumbbell Press", sets: "3", reps: "10-12" },
@@ -161,10 +90,10 @@ function Page() {
     };
 
     const days = parseInt(userData.days);
-    const workoutPlan: WorkoutDay[] = [];
+    const workoutPlan = [];
 
     for (let i = 0; i < days; i++) {
-      const day: WorkoutDay = {
+      const day = {
         day: `Day ${i + 1}`,
         exercises: [],
       };
@@ -187,7 +116,7 @@ function Page() {
     return workoutPlan;
   };
 
-  const generateMealPlan = (userData: UserData): { mealPlan: MealPlan; totalNutrition: TotalNutrition } => {
+  const generateMealPlan = (userData) => {
     const weight = parseFloat(userData.weight);
     const height = parseFloat(userData.height);
     const age = parseFloat(userData.age);
@@ -197,7 +126,7 @@ function Page() {
       ? 88.362 + 13.397 * weight + 4.799 * height - 5.677 * age
       : 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age;
 
-    const activityMultipliers: Record<string, number> = {
+    const activityMultipliers = {
       sedentary: 1.2,
       light: 1.375,
       moderate: 1.55,
@@ -267,7 +196,7 @@ function Page() {
         break;
     }
 
-    const mealPlan: MealPlan = {
+    const mealPlan = {
       breakfast: {
         name: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
         calories: 400,
@@ -307,7 +236,7 @@ function Page() {
     };
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!user || !user.uid) {
@@ -345,7 +274,7 @@ function Page() {
       const newWeightEntry = {
         date: serverTimestamp(),
         weight: userData.weight,
-        reEditDate: Timestamp.fromDate(now), // Convert Date to Timestamp
+        reEditDate: Timestamp.fromDate(now),
       };
 
       const weightProgressSubCollectionRef = collection(
@@ -364,14 +293,14 @@ function Page() {
         carbs: totalNutrition.carbs,
       });
     } catch (error) {
-      console.error("Error creating account:", (error as Error).message);
-      alert((error as Error).message);
+      console.error("Error creating account:", error.message);
+      alert(error.message);
     }
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser as User | null);
+      setUser(currentUser);
       console.log("User:", currentUser);
 
       if (currentUser) {
@@ -381,7 +310,7 @@ function Page() {
 
           if (userDocSnap.exists()) {
             const data = userDocSnap.data();
-            setUserData(data as UserData);
+            setUserData(data);
             if (data.createdDetails) {
               setPutDetails(true);
             } else {
@@ -389,14 +318,14 @@ function Page() {
             }
           } else {
             console.log("No such user found!");
-            setUserData(null as any);
+            setUserData(null);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
-          setUserData(null as any);
+          setUserData(null);
         }
       } else {
-        setUserData(null as any);
+        setUserData(null);
       }
     });
 
@@ -433,11 +362,11 @@ function Page() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         setUser(null);
-        setUserData(null as any);
+        setUserData(null);
         return;
       }
 
-      setUser(currentUser as User);
+      setUser(currentUser);
 
       try {
         const userDocRef = doc(db, "users", currentUser.uid);
@@ -450,18 +379,18 @@ function Page() {
           }
 
           if (userData.paid) {
-            setUserData(userData as UserData);
+            setUserData(userData);
           } else {
             console.log("User does not have an active subscription or trial.");
-            setUserData(null as any);
+            setUserData(null);
           }
         } else {
           console.log("No such user found!");
-          setUserData(null as any);
+          setUserData(null);
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
-        setUserData(null as any);
+        setUserData(null);
       }
     });
 
@@ -478,7 +407,6 @@ function Page() {
 
     let storedEditDate = userData.reEditWeight;
 
-    // Convert Firestore Timestamp to JavaScript Date
     const editDate = storedEditDate.toDate();
 
     const normalizedEditDate = new Date(
