@@ -37,6 +37,7 @@ import {
   getFirestore,
   getDocs,
   Timestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db, auth } from "../../../../firebase";
 import {
@@ -59,7 +60,6 @@ ChartJS.register(
   Legend
 );
 
-
 function Page() {
   const [step, setStep] = useState(1);
   const [lineData, setLineData] = useState([]);
@@ -77,16 +77,12 @@ function Page() {
     workoutLocation: "",
   });
 
-  const [generatedPlan, setGeneratedPlan] = useState(
-    null
-  );
+  const [generatedPlan, setGeneratedPlan] = useState(null);
   const [user, setUser] = useState(null);
   const [chartProgress, setChartProgress] = useState(null);
   const [macros, setMacros] = useState(null);
   const [weightProgress, setWeightProgress] = useState(null);
-  const handleInputChange = (
-    e
-  ) => {
+  const handleInputChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value });
   };
 
@@ -203,63 +199,77 @@ function Page() {
       console.log("User is not valid or user.uid is missing");
       return;
     }
-  
+
     setLoading(true);
-  
-    const fetchAllDocuments = async () => {
+
+    const fetchAllDocuments = () => {
       try {
         console.log("Fetching all documents from clientWeight subcollection");
-  
+
         // Reference to the 'clientWeight' subcollection under 'weightProgress/{user.uid}'
-        const clientWeightRef = collection(db, "weightProgress", user.uid, "clientWeight");
-  
-        // Fetch all the documents in the subcollection
-        const querySnapshot = await getDocs(clientWeightRef);
-  
-        // Check if documents exist
-        if (querySnapshot.empty) {
-          console.log("No documents found in the clientWeight subcollection.");
-          setLoading(false);
-          return;
-        }
-  
-        // Extract and store the data from each document
-        const allDocuments = querySnapshot.docs.map((doc) => {
-          const data = doc.data();
-          console.log("Document data:", data); // Log document data to check
-  
-          // Check if 'date' is a Firestore Timestamp and convert it to a Date object
-          const validDate = data.date instanceof Timestamp ? data.date.toDate() : new Date(data.date);
-  
-          return {
-            ...data,
-            date: validDate,
-          };
-        });
-  
-        // Ensure data is sorted based on the date field
-        const sortedDocuments = allDocuments.sort((a, b) => a.date - b.date);
-  
-        // Collect the weight data and corresponding dates
-        const weightArray = sortedDocuments.map((doc) => doc.weight);
-        const dateLabels = sortedDocuments.map((doc) =>
-          doc.date.toLocaleDateString() || "Invalid Date"
+        const clientWeightRef = collection(
+          db,
+          "weightProgress",
+          user.uid,
+          "clientWeight"
         );
-  
-        // Set the state with the sorted data for the chart
-        setLineData(weightArray);
-        setLabels(dateLabels);
-  
-        console.log("Fetched all documents:", sortedDocuments);
+
+        // Set up a real-time listener with onSnapshot
+        const unsubscribe = onSnapshot(clientWeightRef, (querySnapshot) => {
+          // Check if documents exist
+          if (querySnapshot.empty) {
+            console.log(
+              "No documents found in the clientWeight subcollection."
+            );
+            setLoading(false);
+            return;
+          }
+
+          // Extract and store the data from each document
+          const allDocuments = querySnapshot.docs.map((doc) => {
+            const data = doc.data();
+            console.log("Document data:", data); // Log document data to check
+
+            // Check if 'date' is a Firestore Timestamp and convert it to a Date object
+            const validDate =
+              data.date instanceof Timestamp
+                ? data.date.toDate()
+                : new Date(data.date);
+
+            return {
+              ...data,
+              date: validDate,
+            };
+          });
+
+          // Ensure data is sorted based on the date field
+          const sortedDocuments = allDocuments.sort((a, b) => a.date - b.date);
+
+          // Collect the weight data and corresponding dates
+          const weightArray = sortedDocuments.map((doc) => doc.weight);
+          const dateLabels = sortedDocuments.map(
+            (doc) => doc.date.toLocaleDateString() || "Invalid Date"
+          );
+
+          // Set the state with the sorted data for the chart
+          setLineData(weightArray);
+          setLabels(dateLabels);
+
+          console.log("Fetched all documents:", sortedDocuments);
+        });
+
+        // Clean up the listener when component unmounts or user changes
+        return () => unsubscribe();
       } catch (error) {
         console.error("Error fetching documents:", error);
       } finally {
         setLoading(false); // Set loading to false once data is fetched
       }
     };
-  
-    fetchAllDocuments(); // Call the async function to fetch data
-  }, [user, db]); // This effect runs when 'user' or 'db' changes
+
+    fetchAllDocuments(); // Call the function to set up the listener
+  }, [user?.uid, db]); // Only re-run the effect when user or db changes
+
   // Chart data structure
   const weightChart = {
     labels: labels, // Now this will contain the actual dates
@@ -273,7 +283,7 @@ function Page() {
       },
     ],
   };
-  
+
   return (
     <div className="min-h-screen">
       <nav className="nav">

@@ -25,6 +25,7 @@ import {
   getFirestore,
   getDocs,
   Timestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db, auth, requestNotificationPermission } from "../../firebase";
 import {
@@ -38,6 +39,9 @@ import {
 import Head from "next/head";
 
 import PaymentModal from "./components/Modal";
+import Image from "next/image";
+
+import logo from "../../enhanced-IMG_3755.jpeg.png"
 
 function Modal({
   isOpen,
@@ -56,9 +60,9 @@ function Modal({
 
   async function login(e) {
     e.preventDefault();
-    if (loading) return;
+    if (loading) return; // Prevent multiple logins
 
-    const email = userEmail.current?.value;
+    const email = userEmail.current?.value?.trim();
     const password = userPassword.current?.value;
 
     if (!email || !password) {
@@ -68,6 +72,7 @@ function Modal({
 
     setLoading(true);
     try {
+      // 🔹 Sign in the user
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -75,30 +80,28 @@ function Modal({
       );
       const user = userCredential.user;
 
-      // 🔹 Update Firestore with login timestamp
-      await setDoc(
-        doc(db, "users", user.uid),
-        { lastLogin: serverTimestamp() },
-        { merge: true }
-      );
-
-      // 🔹 Fetch user data (optional, if needed)
+      // 🔹 Reference the user's Firestore document
       const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        // console.log("User data:", userSnap.data());
-        if (userSnap.data().paid) {
-          setSubscribed(true);
-        } else {
-          setSubscribed(false);
-          setNotSubscribed(true);
+      try {
+        // 🔹 Ensure user document exists before updating
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          console.warn("User document does not exist in Firestore.");
+          return;
         }
-      } else {
-        // console.log("User document does not exist!");
+
+        // 🔹 Update last login timestamp
+        await updateDoc(userRef, { lastLogin: serverTimestamp() });
+
+        // 🔹 Check subscription status
+        const userData = userSnap.data();
+        setSubscribed(userData.paid || false);
+        setNotSubscribed(!userData.paid);
+      } catch (firestoreError) {
+        console.error("Firestore error:", firestoreError.message);
       }
 
-      // console.log("User signed in:", user);
       onClose(); // Close modal if applicable
     } catch (error) {
       console.error("Login error:", error.message);
@@ -256,7 +259,7 @@ function Modal({
 }
 function App() {
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editAllowed, setEditAllowed] = useState(false);
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
@@ -281,35 +284,40 @@ function App() {
   const [weightAdded, setWeightAdded] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [notSubscribed, setNotSubscribed] = useState(false);
+  
 
   // ✅ Consolidate auth state handling to avoid multiple redundant listeners
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       // console.log("User:", currentUser);
 
       if (currentUser) {
-        try {
-          const userDocRef = doc(db, "users", currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+        const fetchUserData = async () => {
+          try {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data()); // ✅ Update userData immediately
-            // console.log("User data:", userDocSnap.data());
-          } else {
-            // console.log("No such user found!");
+            if (userDocSnap.exists()) {
+              setUserData(userDocSnap.data()); // ✅ Update userData immediately
+              // console.log("User data:", userDocSnap.data());
+            } else {
+              console.warn("No such user found!");
+              setUserData(null);
+            }
+          } catch (error) {
+            console.error("Error fetching user data:", error);
             setUserData(null);
           }
-        } catch (error) {
-          // console.error("Error fetching user data:", error);
-          setUserData(null);
-        }
+        };
+
+        fetchUserData(); // ✅ Call async function safely
       } else {
         setUserData(null);
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup on unmount
   }, []);
 
   // ✅ Directly reflect free trial start without needing a refresh
@@ -460,56 +468,51 @@ function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
         setUser(null);
-        setUserData(null); // ✅ Clear user data on logout to prevent errors
+        setUserData(null);
+        setSubscribed(false);
+        setNotSubscribed(false);
+        setLoading(false); // Stop loading when there's no user
         return;
       }
-
+  
       setUser(currentUser);
-
-      try {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          setUserData(userDocSnap.data()); // ✅ Update state only if user exists
-          if (userDocSnap.data().paid) {
-            setSubscribed(true);
-          } else {
-            setNotSubscribed(true);
-          }
+  
+      // Reference to the Firestore document
+      const userDocRef = doc(db, "users", currentUser.uid);
+  
+      // ✅ Real-time listener for user data updates
+      const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          setUserData(userData);
+          setSubscribed(!!userData.paid);
+          setNotSubscribed(!userData.paid);
         } else {
-          // console.log("No such user found!");
+          console.warn("No such user found!");
           setUserData(null);
+          setSubscribed(false);
+          setNotSubscribed(false);
         }
-      } catch (error) {
-        // console.error("Error fetching user data:", error);
+        setLoading(false); 
+      }, (error) => {
+        console.error("Error fetching user data:", error);
         setUserData(null);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  async function editWeight() {
-    const now = new Date(); // Get the current date
-    now.setMonth(now.getMonth() + 1); // Add one month
-
-    try {
-      const userRef = doc(db, "users", user.uid);
-      await updateDoc(userRef, {
-        editedWeight: serverTimestamp(),
-        weight: Number(weightAdded),
-        reEditWeight: now,
+        setSubscribed(false);
+        setNotSubscribed(false);
+        setLoading(false); // Stop loading on error as well
       });
-
-      // console.log("updated!");
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  
+      // Cleanup function
+      return () => unsubscribeSnapshot();
+    });
+  
+    return () => unsubscribeAuth();
+  }, []);
+  
+  
 
   useEffect(() => {
     if (!userData?.reEditWeight) {
@@ -562,24 +565,30 @@ function App() {
   }, [userData]); // Ensure the correct dependency is used
 
   async function editOrAddWeight() {
-    if (!weightAdded) {
-      // console.error("Weight is empty or null!");
+    if (!user?.uid) {
+      console.error("User is not logged in.");
+      return;
+    }
+
+    if (!weightAdded || isNaN(weightAdded)) {
+      console.error("Invalid weight input!");
       return;
     }
 
     const clientWeightRef = collection(
-      db,
-      "weightProgress",
-      user.uid,
+      doc(db, "weightProgress", user.uid),
       "clientWeight"
     );
     const userRef = doc(db, "users", user.uid); // Reference to the user document
 
     try {
-      // Get current date and next month
+      // Get current date & ensure next month calculation is correct
       const now = new Date();
       const nextMonth = new Date(now);
-      nextMonth.setMonth(now.getMonth() + 1); // Add one month
+      nextMonth.setMonth(now.getMonth() + 1);
+      if (nextMonth.getDate() !== now.getDate()) {
+        nextMonth.setDate(0); // Set to last day of next month if shifted
+      }
 
       // Extract current month & year
       const currentMonth = now.getMonth();
@@ -606,37 +615,31 @@ function App() {
 
       if (existingDoc) {
         // Update existing weight entry for this month
-        const weightDocRef = doc(
-          db,
-          "weightProgress",
-          user.uid,
-          "clientWeight",
-          existingDoc.id
-        );
+        const weightDocRef = doc(clientWeightRef, existingDoc.id);
         await updateDoc(weightDocRef, {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        // console.log("Updated existing weight entry for this month.");
+        console.log("✅ Updated existing weight entry.");
       } else {
         // Create a new weight entry
         await addDoc(clientWeightRef, {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        // console.log("Added new weight entry.");
+        console.log("✅ Added new weight entry.");
       }
 
       // Update user document
       await updateDoc(userRef, {
         editedWeight: serverTimestamp(),
         weight: Number(weightAdded),
-        // reEditWeight: nextMonth,
+        reEditWeight: Timestamp.fromDate(nextMonth), // ✅ Correct next edit date
       });
 
-      // console.log("User weight updated!");
+      console.log("✅ User weight updated!");
     } catch (error) {
-      console.error("Error updating weight:", error);
+      console.error("❌ Error updating weight:", error);
     }
   }
 
@@ -656,16 +659,31 @@ function App() {
     setPaymentModalOpen(true);
   }
 
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <Image src={logo} alt="Loading" className="logoImageLoading" />
+        <h1 className="loadingh1">TrainifAI</h1>
+      </div>
+    );
+  }
+  
+
   return (
     <div>
-      {userData && userData.paid ? (
+      {userData ? (
         <Settings strokeWidth={1.5} className="settings" onClick={openModal} />
       ) : (
         // fallback content if userData or userData.paid is not available
         <></>
       )}
       {paymentModalOpen ? (
-        <PaymentModal setPaymentModalOpen={setPaymentModalOpen} />
+        <PaymentModal
+          setPaymentModalOpen={setPaymentModalOpen}
+          userData={userData}
+          setSubscribed={setSubscribed}
+          setNotSubscribed={setNotSubscribed}
+        />
       ) : (
         <></>
       )}
@@ -706,24 +724,28 @@ function App() {
                   </button>
                 </div>
 
-                <div className="settings-information-item">
-                  <span className="settings-information-label">Weight:</span>
-                  <div className="settings-weight-control">
-                    <input
-                      type="number"
-                      value={weightAdded}
-                      className="settings-weight-input"
-                      onChange={(e) => setWeightAdded(e.target.value)}
-                      placeholder="Weight"
-                    />
-                    <button
-                      className="settings-action-button settings-weight-button"
-                      onClick={editOrAddWeight}
-                    >
-                      Update Weight
-                    </button>
+                {userData && userData.paid ? (
+                  <div className="settings-information-item">
+                    <span className="settings-information-label">Weight:</span>
+                    <div className="settings-weight-control">
+                      <input
+                        type="number"
+                        value={weightAdded}
+                        className="settings-weight-input"
+                        onChange={(e) => setWeightAdded(e.target.value)}
+                        placeholder="Weight"
+                      />
+                      <button
+                        className="settings-action-button settings-weight-button"
+                        onClick={editOrAddWeight}
+                      >
+                        Update
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <></>
+                )}
               </div>
 
               <div className="settings-modal-footer">

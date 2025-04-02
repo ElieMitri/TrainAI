@@ -2004,13 +2004,14 @@ button:hover {
 /* Settings Modal Container */
 .settings-modal-container {
   position: relative;
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 500px;
   padding: 0;
   overflow: hidden;
+  margin: 40px;
 }
 
 /* Close Button */
@@ -2152,4 +2153,192 @@ button:hover {
 
 .settings-logout-button:hover {
   background-color: #dc2626;
+}
+
+.nutrition-tracking-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  /* padding: 20px; */
+  font-family: "Arial", sans-serif;
+  background-color: #f7f9fc;
+}
+
+.nutrition-header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 20px;
+  /* border-radius: 8px; */
+  margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-icon {
+  color: #3498db;
+}
+
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.input-card,
+.overview-card,
+.meal-log-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.nutrition-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.add-meal-button {
+  grid-column: span 2;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.progress-grid {
+  display: grid;
+  gap: 15px;
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.meal-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+@media (max-width: 768px) {
+  .nutrition-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center; /* Horizontally center */
+  align-items: center; /* Vertically center */
+  height: 100vh; /* Full viewport height */
+  width: 100vw; /* Full viewport width */
+  background-color: rgb(26, 20, 59);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+@keyframes flicker {
+  0% {
+    box-shadow: 0px 0px 30px 20px rgb(65, 48, 148);
+  }
+  50% {
+    box-shadow: 0px 0px 30px 20px rgba(52, 39, 120, 0.712); /* Lighter shadow */
+  }
+  100% {
+    box-shadow: 0px 0px 30px 20px rgb(65, 48, 148);
+  }
+}
+
+.logoImageLoading {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  box-shadow: 0px 0px 30px 30px rgb(46, 34, 105);
+  margin-bottom: 20px;
+  animation: flicker 1s infinite; /* Animation to create the flickering effect */
+}
+
+.loadingh1 {
+  color: rgba(183, 183, 183, 0.268);
+  font-size: 20px;
+}
+
+.input-group {
+  margin: 20px 0;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.input-group label {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff; /* White text for the labels */
+  margin-bottom: 30px;
+  display: block;
+}
+
+.input-group h1 {
+  font-size: 1.2rem;
+  margin: 8px 0;
+  color: #bbbbbb; /* Darker color for the values */
+  text-align: left;
+  margin-bottom: 30px;
+}
+
+.input-group h1 span {
+  font-size: 1rem;
+  color: #888888b4; /* Light gray color for the macro values */
+}
+
+.input-group h1 + h1 {
+  border-top: 1px solid #ddd; /* A light border between each macro */
+  padding-top: 10px;
+}
+
+@media (max-width: 768px) {
+  .input-group {
+    padding: 15px;
+  }
+
+  .input-group h1 {
+    font-size: 1.3rem;
+  }
 }

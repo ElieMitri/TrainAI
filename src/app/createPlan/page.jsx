@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -25,6 +25,7 @@ import {
   getFirestore,
   getDocs,
   Timestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import { db, auth } from "../../../firebase";
 import {
@@ -35,13 +36,14 @@ import {
   updateProfile,
   signOut as firebaseSignOut,
 } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function Page() {
   const [step, setStep] = useState(1);
   const [allowed, setAllowed] = useState(false);
-  const [editAllowed, setEditAllowed] = useState(false);
+  const [editAllowed, setEditAllowed] = useState(true);
   const [putDetails, setPutDetails] = useState(false);
   const [userData, setUserData] = useState({
     age: "",
@@ -53,14 +55,27 @@ function Page() {
     dietaryPreference: "",
     activityLevel: "",
     workoutLocation: "",
+    allergies: "",
+    healthProblems: "",
+    hatedFood: [],
   });
 
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [user, setUser] = useState(null);
 
   const handleInputChange = (e) => {
-    setUserData({ ...userData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setUserData((prevState) => ({
+      ...prevState,
+      [name]: value,
+      allergies: name === "allergies" ? value.split(", ") : prevState.allergies,
+      hatedFood: name === "hatedFood" ? value.split(", ") : prevState.hatedFood,
+      healthProblems: name === "healthProblems" ? value.split(", ") : prevState.healthProblems,
+    }));
   };
+
+  const router = useRouter();
 
   const generateWorkoutPlan = (userData) => {
     const exercises = {
@@ -136,7 +151,8 @@ function Page() {
       extra: 1.9,
     };
 
-    const activityMultiplier = activityMultipliers[userData.activityLevel] || 1.2;
+    const activityMultiplier =
+      activityMultipliers[userData.activityLevel] || 1.2;
 
     let totalCalories = bmr * activityMultiplier;
 
@@ -150,8 +166,8 @@ function Page() {
     }
 
     let protein = (totalCalories * 0.3) / 4;
-    let fats = (totalCalories * 0.25) / 9;
-    let carbs = (totalCalories * 0.45) / 4;
+    let fats = (totalCalories * 0.3) / 9;
+    let carbs = (totalCalories * 0.4) / 4;
 
     switch (userData.dietaryPreference) {
       case "keto":
@@ -159,39 +175,15 @@ function Page() {
         protein = (totalCalories * 0.25) / 4;
         carbs = (totalCalories * 0.05) / 4;
         break;
-      case "high-protein":
-        protein = (totalCalories * 0.4) / 4;
-        fats = (totalCalories * 0.3) / 9;
-        carbs = (totalCalories * 0.3) / 4;
-        break;
       case "vegan":
         protein = (totalCalories * 0.25) / 4;
         fats = (totalCalories * 0.2) / 9;
         carbs = (totalCalories * 0.55) / 4;
         break;
-      case "vegetarian":
-        protein = (totalCalories * 0.3) / 4;
-        fats = (totalCalories * 0.25) / 9;
-        carbs = (totalCalories * 0.45) / 4;
-        break;
-      case "paleo":
-        protein = (totalCalories * 0.35) / 4;
-        fats = (totalCalories * 0.35) / 9;
-        carbs = (totalCalories * 0.3) / 4;
-        break;
-      case "low-carb":
-        protein = (totalCalories * 0.35) / 4;
-        fats = (totalCalories * 0.4) / 9;
-        carbs = (totalCalories * 0.25) / 4;
-        break;
-      case "mediterranean":
-        protein = (totalCalories * 0.3) / 4;
-        fats = (totalCalories * 0.35) / 9;
-        carbs = (totalCalories * 0.35) / 4;
-        break;
       case "balanced":
       case "no-preference":
       default:
+        // Default for balanced or no preference diet
         protein = (totalCalories * 0.3) / 4;
         fats = (totalCalories * 0.3) / 9;
         carbs = (totalCalories * 0.4) / 4;
@@ -200,30 +192,51 @@ function Page() {
 
     const mealPlan = {
       breakfast: {
-        name: userData.dietaryPreference === "vegan" ? "Smoothie + Oats" : "Eggs + Toast",
+        name:
+          userData.dietaryPreference === "vegan"
+            ? "Smoothie + Oats"
+            : "Eggs + Toast",
         calories: 400,
         protein: 20,
         fats: 10,
         carbs: 50,
       },
       lunch: {
-        name: userData.dietaryPreference === "keto" ? "Grilled Chicken + Avocado" : "Chicken + Rice",
+        name:
+          userData.dietaryPreference === "keto"
+            ? "Grilled Chicken + Avocado"
+            : "Chicken + Rice",
         calories: 600,
         protein: 45,
         fats: 20,
         carbs: 60,
       },
       dinner: {
-        name: userData.dietaryPreference === "mediterranean" ? "Salmon + Quinoa" : "Steak + Sweet Potatoes",
+        name:
+          userData.dietaryPreference === "mediterranean"
+            ? "Salmon + Quinoa"
+            : "Steak + Sweet Potatoes",
         calories: 700,
         protein: 50,
         fats: 25,
         carbs: 65,
       },
       snacks: [
-        { name: "Greek Yogurt", calories: 150, protein: 10, fats: 5, carbs: 15 },
+        {
+          name: "Greek Yogurt",
+          calories: 150,
+          protein: 10,
+          fats: 5,
+          carbs: 15,
+        },
         { name: "Almonds", calories: 200, protein: 6, fats: 18, carbs: 6 },
-        { name: "Protein Shake", calories: 250, protein: 30, fats: 5, carbs: 10 },
+        {
+          name: "Protein Shake",
+          calories: 250,
+          protein: 30,
+          fats: 5,
+          carbs: 10,
+        },
       ],
     };
 
@@ -253,22 +266,16 @@ function Page() {
 
     try {
       await setDoc(doc(db, "personDetails", user.uid), {
+        ...userData,
         displayName: user.displayName,
         date: serverTimestamp(),
-        age: userData.age,
-        weight: userData.weight,
-        height: userData.height,
-        days: userData.days,
-        gender: userData.gender,
-        fitnessGoal: userData.fitnessGoal,
-        activityLevel: userData.activityLevel,
-        dietaryPreference: userData.dietaryPreference,
-        workoutLocation: userData.workoutLocation,
       });
 
-      await setDoc(doc(db, "users", user.uid), {
-        createdDetails: "true",
-      });
+      await setDoc(
+        doc(db, "users", user.uid),
+        { createdDetails: "true" },
+        { merge: true } // Ensures only this field is added/updated
+      );
 
       const now = new Date();
       now.setMonth(now.getMonth() + 1);
@@ -286,6 +293,10 @@ function Page() {
 
       await addDoc(weightProgressSubCollectionRef, newWeightEntry);
 
+      await updateDoc(doc(db, "users", user.uid), {
+        reEditWeight: Timestamp.fromDate(now),
+      });
+
       await setDoc(doc(db, "personMacros", user.uid), {
         displayName: user.displayName,
         date: serverTimestamp(),
@@ -301,37 +312,44 @@ function Page() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       console.log("User:", currentUser);
 
       if (currentUser) {
-        try {
-          const userDocRef = doc(db, "users", currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+        const userDocRef = doc(db, "users", currentUser.uid);
 
-          if (userDocSnap.exists()) {
-            const data = userDocSnap.data();
-            setUserData(data);
-            if (data.createdDetails) {
-              setPutDetails(true);
+        // Using onSnapshot to listen to document changes in real-time
+        const unsubscribeSnapshot = onSnapshot(
+          userDocRef,
+          (userDocSnap) => {
+            if (userDocSnap.exists()) {
+              const data = userDocSnap.data();
+              setUserData(data);
+              if (data.createdDetails) {
+                setPutDetails(true);
+              } else {
+                setPutDetails(false);
+              }
             } else {
-              setPutDetails(false);
+              console.log("No such user found!");
+              setUserData(null);
             }
-          } else {
-            console.log("No such user found!");
+          },
+          (error) => {
+            console.error("Error fetching user data:", error);
             setUserData(null);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUserData(null);
-        }
+        );
+
+        // Cleanup the snapshot listener on unmount or when the user logs out
+        return () => unsubscribeSnapshot();
       } else {
         setUserData(null);
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup on auth state change listener
   }, []);
 
   const nutritionChartData = {
@@ -361,43 +379,53 @@ function Page() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       if (!currentUser) {
+        // If no user is authenticated, reset user data
         setUser(null);
         setUserData(null);
+        setPutDetails(false); // Reset putDetails state if no user is authenticated
         return;
       }
 
       setUser(currentUser);
 
-      try {
-        const userDocRef = doc(db, "users", currentUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      // Real-time listener for the user's document in Firestore
+      const userDocRef = doc(db, "users", currentUser.uid);
 
+      // Listen to real-time updates
+      const unsubscribeSnapshot = onSnapshot(userDocRef, (userDocSnap) => {
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
+
+          // Check if 'createdDetails' flag exists and is "true"
           if (userData.createdDetails === "true") {
-            setPutDetails(true);
+            setPutDetails(true); // Set putDetails if createdDetails is "true"
+          } else {
+            setPutDetails(false); // Set putDetails to false if not created
           }
 
+          // Check if the user has an active subscription or trial
           if (userData.paid) {
-            setUserData(userData);
+            setUserData(userData); // Set user data if the user has a valid subscription
           } else {
             console.log("User does not have an active subscription or trial.");
-            setUserData(null);
+            setUserData(null); // Reset user data if no active subscription
+            router.push("/"); // Redirect to home if no active subscription
           }
         } else {
           console.log("No such user found!");
-          setUserData(null);
+          setUserData(null); // Reset user data if document does not exist
         }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        setUserData(null);
-      }
+      });
+
+      // Cleanup function to unsubscribe from Firestore real-time updates
+      return () => unsubscribeSnapshot();
     });
 
-    return () => unsubscribe();
-  }, []);
+    // Cleanup function to unsubscribe from auth state change listener
+    return () => unsubscribeAuth();
+  }, []); // Empty dependency array ensures this effect runs only once on mount
 
   useEffect(() => {
     if (!userData?.reEditWeight) {
@@ -405,22 +433,28 @@ function Page() {
     }
 
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Remove time
 
-    let storedEditDate = userData.reEditWeight;
-
-    const editDate = storedEditDate.toDate();
+    const storedEditDate = userData.reEditWeight.toDate(); // Convert Firestore Timestamp to JS Date
 
     const normalizedEditDate = new Date(
-      editDate.getFullYear(),
-      editDate.getMonth(),
-      editDate.getDate()
+      storedEditDate.getFullYear(),
+      storedEditDate.getMonth(),
+      storedEditDate.getDate()
     );
 
-    if (today.getTime() === normalizedEditDate.getTime()) {
+    // Debugging
+    console.log("Today's Date:", today);
+    console.log("Today's Timestamp:", today.getTime());
+    console.log("Re-Edit Date:", normalizedEditDate);
+    console.log("Re-Edit Timestamp:", normalizedEditDate.getTime());
+
+    if (today.getTime() >= normalizedEditDate.getTime()) {
       setEditAllowed(true);
+      console.log("Editing NOT allowed");
     } else {
       setEditAllowed(false);
+      console.log("Editing IS allowed");
     }
   }, [userData]);
 
@@ -489,7 +523,7 @@ function Page() {
                         <input
                           type="number"
                           name="age"
-                          value={userData.age || ""}
+                          value={userData?.age || ""}
                           onChange={handleInputChange}
                           className="form-input"
                           placeholder="Enter your age"
@@ -500,7 +534,7 @@ function Page() {
                         <label className="form-label">Gender</label>
                         <select
                           name="gender"
-                          value={userData.gender}
+                          value={userData?.gender}
                           onChange={handleInputChange}
                           className="form-select"
                           required
@@ -515,7 +549,7 @@ function Page() {
                         <input
                           type="number"
                           name="weight"
-                          value={userData.weight || ""}
+                          value={userData?.weight || ""}
                           onChange={handleInputChange}
                           className="form-input"
                           placeholder="Enter your weight"
@@ -527,7 +561,7 @@ function Page() {
                         <input
                           type="number"
                           name="height"
-                          value={userData.height || ""}
+                          value={userData?.height || ""}
                           onChange={handleInputChange}
                           className="form-input"
                           placeholder="Enter your height"
@@ -543,7 +577,7 @@ function Page() {
                         <label className="form-label">Fitness Goal</label>
                         <select
                           name="fitnessGoal"
-                          value={userData.fitnessGoal}
+                          value={userData?.fitnessGoal}
                           onChange={handleInputChange}
                           className="form-select"
                           required
@@ -554,55 +588,85 @@ function Page() {
                           <option value="maintenance">Maintenance</option>
                         </select>
                       </div>
+
                       <div className="form-group">
                         <label className="form-label">Dietary Preference</label>
                         <select
                           name="dietaryPreference"
-                          value={userData.dietaryPreference}
+                          value={userData?.dietaryPreference}
                           onChange={handleInputChange}
                           className="form-select"
                           required
                         >
                           <option value="">Select diet type</option>
                           <option value="balanced">Balanced</option>
-                          <option value="high-protein">High Protein</option>
-                          <option value="low-carb">Low Carb</option>
-                          <option value="mediterranean">Mediterranean</option>
-                          <option value="vegetarian">Vegetarian</option>
+                          <option value="keto">Keto</option>
                           <option value="vegan">Vegan</option>
                           <option value="no-preference">No Preference</option>
                         </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Hated Foods</label>
+                        <input
+                          className="form-input"
+                          type="text"
+                          name="hatedFoods"
+                          onChange={handleInputChange}
+                          placeholder="Enter hated foods"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Allergies</label>
+                        <input
+                          className="form-input"
+                          type="text"
+                          name="allergies"
+                          onChange={handleInputChange}
+                          placeholder="Enter allergies"
+                        />
                       </div>
                     </div>
                   )}
 
                   {step === 3 && (
-                    <div className="form-group">
-                      <label className="form-label">Activity Level</label>
-                      <select
-                        name="activityLevel"
-                        value={userData.activityLevel}
-                        onChange={handleInputChange}
-                        className="form-select"
-                        required
-                      >
-                        <option value="">Select activity level</option>
-                        <option value="sedentary">
-                          Sedentary (little or no exercise)
-                        </option>
-                        <option value="light">
-                          Lightly active (1-3 days/week)
-                        </option>
-                        <option value="moderate">
-                          Moderately active (3-5 days/week)
-                        </option>
-                        <option value="very">
-                          Very active (6-7 days/week)
-                        </option>
-                        <option value="extra">
-                          Extra active (very active + physical job)
-                        </option>
-                      </select>
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label className="form-label">Activity Level</label>
+                        <select
+                          name="activityLevel"
+                          value={userData.activityLevel}
+                          onChange={handleInputChange}
+                          className="form-select"
+                          required
+                        >
+                          <option value="">Select activity level</option>
+                          <option value="sedentary">
+                            Sedentary (little or no exercise)
+                          </option>
+                          <option value="light">
+                            Lightly active (1-3 days/week)
+                          </option>
+                          <option value="moderate">
+                            Moderately active (3-5 days/week)
+                          </option>
+                          <option value="very">
+                            Very active (6-7 days/week)
+                          </option>
+                          <option value="extra">
+                            Extra active (very active + physical job)
+                          </option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Health Problems</label>
+                        <input
+                          className="form-input"
+                          type="text"
+                          name="healthProblems"
+                          onChange={handleInputChange}
+                          placeholder="Enter Health Problems"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -641,13 +705,6 @@ function Page() {
                     <>
                       <div className="nav-buttons">
                         <button
-                          type={step === 5 ? "submit" : "button"}
-                          onClick={() => step < 5 && setStep(step + 1)}
-                          className="btn btn-primary"
-                        >
-                          {step === 5 ? "Generate Plan" : "Next"}
-                        </button>
-                        <button
                           type="button"
                           onClick={() =>
                             setStep((prev) => Math.max(1, prev - 1))
@@ -659,13 +716,25 @@ function Page() {
                         >
                           Previous
                         </button>
+                        <button
+                          type={step === 4 ? "submit" : "button"}
+                          onClick={() => step < 5 && setStep(step + 1)}
+                          className="btn btn-primary"
+                        >
+                          {step === 4 ? "Generate Plan" : "Next"}
+                        </button>
                       </div>
                     </>
                   ) : (
                     <h4 className="settingsContentWeight2">
-                      {userData.reEditWeight?.toDate
-                        ? <div>Cannot edit until {userData.reEditWeight.toDate().toLocaleDateString()}</div>
-                        : <></>}
+                      {userData.reEditWeight?.toDate ? (
+                        <div>
+                          Cannot edit until{" "}
+                          {userData.reEditWeight.toDate().toLocaleDateString()}
+                        </div>
+                      ) : (
+                        <></>
+                      )}
                     </h4>
                   )}
                 </form>
