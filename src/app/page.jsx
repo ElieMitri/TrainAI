@@ -45,7 +45,7 @@ import { FaRedditAlien } from "react-icons/fa";
 import Whish from "../../public/whish.png";
 import PaymentModal from "./components/Modal";
 import Image from "next/image";
-import OMT from "../../public/omt.png";
+import OMT from "../../public/OMT.png";
 import western from "../../public/western.png";
 import logo from "../../enhanced-IMG_3755.jpeg.png";
 
