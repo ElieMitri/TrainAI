@@ -69,7 +69,7 @@ export default function AccountPage() {
       await auth.signOut();
       showNotification("Logged out successfully!", "success");
       setTimeout(() => {
-        router.push("/login"); // or "/" or any other route
+        router.push("/"); // or "/" or any other route
       }, 1000); // wait a moment for notification
     } catch (error) {
       console.error("Logout error:", error);

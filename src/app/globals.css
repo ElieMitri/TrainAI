@@ -6074,3 +6074,9 @@ NEW
   }
   
 }
+
+@media(max-width: 750px) {
+  .account-page__container {
+    width: 90%;
+  }
+}
