@@ -3389,6 +3389,9 @@ select:hover {
   .meal-item {
     font-size: 14px;
   }
+  .btn {
+    font-size: 0.5rem;
+  }
 }
 
 .footer-grid {
@@ -3525,7 +3528,7 @@ select:hover {
   padding: 0.5rem 1.25rem;
   border-radius: 8px;
   font-weight: 600;
-  font-size: 0.875rem;
+  /* font-size: 0.875rem; */
   cursor: pointer;
   transition: all 0.2s ease;
   background-color: rgba(255, 255, 255, 0);
@@ -6062,4 +6065,12 @@ NEW
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+
+@media(max-width: 550px) {
+  .btn:nth-of-type(2) {
+    display: none;
+  }
+  
 }

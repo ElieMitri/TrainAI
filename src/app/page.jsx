@@ -299,7 +299,7 @@ function Modal({
           </button>
         </form>
         <div className="modal-footer">
-          {/* {type === "signIn" ? (
+          {type === "signIn" ? (
             <p>
               Don't have an account?{" "}
               <a
@@ -327,7 +327,7 @@ function Modal({
                 Login
               </a>
             </p>
-          )} */}
+          )}
         </div>
       </div>
     </div>
