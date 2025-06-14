@@ -2,8 +2,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,7 +10,7 @@ const firebaseConfig = {
   projectId: "getfitai-32362",
   storageBucket: "getfitai-32362.firebasestorage.app",
   messagingSenderId: "764257480188",
-  appId: "1:764257480188:web:b9de0039eee1c0a4ae1679"
+  appId: "1:764257480188:web:b9de0039eee1c0a4ae1679",
 };
 
 // Initialize Firebase

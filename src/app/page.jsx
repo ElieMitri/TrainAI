@@ -11,7 +11,10 @@ import {
   Crown,
   Settings,
   LogOut,
+  Instagram,
+  Mail,
 } from "lucide-react";
+import { GiHamburgerMenu } from "react-icons/gi";
 import Link from "next/link";
 import {
   setDoc,
@@ -37,11 +40,19 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import Head from "next/head";
-
+import { FaXTwitter } from "react-icons/fa6";
+import { FaRedditAlien } from "react-icons/fa";
+import Whish from "../../public/whish.png";
 import PaymentModal from "./components/Modal";
 import Image from "next/image";
+import OMT from "../../public/omt.png";
+import western from "../../public/western.png";
+import logo from "../../enhanced-IMG_3755.jpeg.png";
 
-import logo from "../../enhanced-IMG_3755.jpeg.png"
+import Notification from "./components/Notification";
+// import PrivacyModal from "./components/PrivacyModal";
+// import TermsModal from "./components/TermsModal";
+import { FaTiktok } from "react-icons/fa";
 
 function Modal({
   isOpen,
@@ -57,22 +68,41 @@ function Modal({
   const userEmail = useRef(null);
   const userPassword = useRef(null);
   const userName = useRef(null);
+  const [notification, setNotification] = useState({
+    visible: false,
+    type: "info",
+    message: "",
+  });
+
+  const showNotification = (message, type = "info") => {
+    setNotification({
+      visible: true,
+      type,
+      message,
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
 
   async function login(e) {
     e.preventDefault();
-    if (loading) return; // Prevent multiple logins
+    if (loading) return;
 
     const email = userEmail.current?.value?.trim();
     const password = userPassword.current?.value;
 
     if (!email || !password) {
-      alert("Please enter both email and password.");
+      showNotification("Please enter both email and password.", "error");
       return;
     }
 
     setLoading(true);
     try {
-      // 🔹 Sign in the user
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -80,35 +110,46 @@ function Modal({
       );
       const user = userCredential.user;
 
-      // 🔹 Reference the user's Firestore document
       const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
 
-      try {
-        // 🔹 Ensure user document exists before updating
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          console.warn("User document does not exist in Firestore.");
-          return;
-        }
-
-        // 🔹 Update last login timestamp
-        await updateDoc(userRef, { lastLogin: serverTimestamp() });
-
-        // 🔹 Check subscription status
-        const userData = userSnap.data();
-        setSubscribed(userData.paid || false);
-        setNotSubscribed(!userData.paid);
-      } catch (firestoreError) {
-        console.error("Firestore error:", firestoreError.message);
+      if (!userSnap.exists()) {
+        showNotification("User record not found in database.", "error");
+        return;
       }
 
-      onClose(); // Close modal if applicable
+      await updateDoc(userRef, { lastLogin: serverTimestamp() });
+
+      const userData = userSnap.data();
+      setSubscribed(userData.paid || false);
+      setNotSubscribed(!userData.paid);
+
+      onClose(); // Close modal
     } catch (error) {
-      console.error("Login error:", error.message);
-      alert(error.message);
+      let message = "Login failed. Please try again.";
+
+      switch (error.code) {
+        case "auth/user-not-found":
+          message = "No account found with this email.";
+          break;
+        case "auth/wrong-password":
+          message = "Password is incorrect. Please try again.";
+          break;
+        case "auth/invalid-email":
+          message = "The email address format is invalid.";
+          break;
+        case "auth/too-many-requests":
+          message = "Too many login attempts. Try again later.";
+          break;
+        case "auth/network-request-failed":
+          message = "Network error. Please check your internet connection.";
+          break;
+      }
+
+      showNotification(message, "error");
     } finally {
       setLoading(false);
-      document.body.style.overflowY = "auto"; // Restore scrolling
+      document.body.style.overflowY = "auto";
     }
   }
 
@@ -121,11 +162,12 @@ function Modal({
     const displayName = userName.current?.value;
 
     if (!email || !password || !displayName) {
-      alert("Please fill in all fields.");
+      showNotification("Please fill in all fields.", "error");
       return;
     }
 
     setLoading(true);
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -136,37 +178,71 @@ function Modal({
 
       await updateProfile(user, { displayName });
 
-      // 🔹 Save user details to Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: user.email,
         displayName,
         date: serverTimestamp(),
-        // freeTrialActive: false,
-        // freeTrialEnded: false,
         paid: false,
       });
 
-      // console.log("Account created successfully!");
-      onClose(); // Close modal (optional)
+      onClose(); // Close modal
     } catch (error) {
-      // console.error("Error creating account:", error.message);
-      alert(error.message);
+      let message = "An unexpected error occurred.";
+
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          message = "This email is already registered.";
+          break;
+        case "auth/invalid-email":
+          message = "Please enter a valid email address.";
+          break;
+        case "auth/weak-password":
+          message = "Password should be at least 6 characters.";
+          break;
+        case "auth/missing-password":
+          message = "Please enter a password.";
+          break;
+        case "auth/internal-error":
+          message = "Something went wrong. Please try again.";
+          break;
+        case "auth/too-many-requests":
+          message = "Too many attempts. Try again later.";
+          break;
+        case "auth/network-request-failed":
+          message = "Network error. Check your connection.";
+          break;
+      }
+
+      showNotification(message, "error");
     } finally {
       setLoading(false);
-      document.body.style.overflowY = "auto"; // Disable scrolling
+      document.body.style.overflowY = "auto";
     }
+  }
+
+  function closeModal() {
+    onClose(); // Make sure it's spelled the same as the prop
+
+    // Restore scroll behavior
+    document.body.style.overflow = "auto";
   }
 
   return (
     <div className="modal-overlay">
       <div className="modal">
-        <button className="modal-close" onClick={onClose}>
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          isVisible={notification.visible}
+          onClose={hideNotification}
+        />
+        <button className="modal-close" onClick={closeModal}>
           X
         </button>
         <div className="modal-header">
           <h2 className="modal-title">
-            {type === "signIn" ? "Sign In" : "Create Free Account"}
+            {type === "signIn" ? "Login" : "Sign Up"}
           </h2>
         </div>
         <form
@@ -218,16 +294,16 @@ function Modal({
             {loading
               ? "Processing..."
               : type === "signIn"
-              ? "Sign In"
+              ? "Login"
               : "Create Account"}
           </button>
         </form>
         <div className="modal-footer">
-          {type === "signIn" ? (
+          {/* {type === "signIn" ? (
             <p>
               Don't have an account?{" "}
               <a
-                href="#"
+                // href="#"
                 onClick={(e) => {
                   e.preventDefault();
                   onClose();
@@ -241,17 +317,17 @@ function Modal({
             <p>
               Already have an account?{" "}
               <a
-                href="#"
+                // href="#"
                 onClick={(e) => {
                   e.preventDefault();
                   onClose();
                   setActiveModal("signIn");
                 }}
               >
-                Sign in
+                Login
               </a>
             </p>
-          )}
+          )} */}
         </div>
       </div>
     </div>
@@ -284,7 +360,42 @@ function App() {
   const [weightAdded, setWeightAdded] = useState("");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [notSubscribed, setNotSubscribed] = useState(false);
-  
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [addingWeight, setAddingWeight] = useState(false);
+  const [openCancelModal, setOpenCancelModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState("");
+  const [isntLoggedIn, setIsntLoggedIn] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const openSidebar = () => setIsOpen(true);
+  const closeSidebar = () => setIsOpen(false);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+  };
+
+  const [notification, setNotification] = useState({
+    visible: false,
+    type: "info",
+    message: "",
+  });
+
+  const showNotification = (message, type = "info") => {
+    setNotification({
+      visible: true,
+      type,
+      message,
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
 
   // ✅ Consolidate auth state handling to avoid multiple redundant listeners
   useEffect(() => {
@@ -418,7 +529,6 @@ function App() {
     },
   };
 
-  // useEffect(() => {
   //   if (!userData?.freeTrialEndTime) {
   //     setFreeTrialActive(false); // Set to false if there is no free trial end time or no user data
   //     return;
@@ -477,42 +587,44 @@ function App() {
         setLoading(false); // Stop loading when there's no user
         return;
       }
-  
+
       setUser(currentUser);
-  
+
       // Reference to the Firestore document
       const userDocRef = doc(db, "users", currentUser.uid);
-  
+
       // ✅ Real-time listener for user data updates
-      const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          setUserData(userData);
-          setSubscribed(!!userData.paid);
-          setNotSubscribed(!userData.paid);
-        } else {
-          console.warn("No such user found!");
+      const unsubscribeSnapshot = onSnapshot(
+        userDocRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            setUserData(userData);
+            setSubscribed(!!userData.paid);
+            setNotSubscribed(!userData.paid);
+          } else {
+            console.warn("No such user found!");
+            setUserData(null);
+            setSubscribed(false);
+            setNotSubscribed(false);
+          }
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching user data:", error);
           setUserData(null);
           setSubscribed(false);
           setNotSubscribed(false);
+          setLoading(false); // Stop loading on error as well
         }
-        setLoading(false); 
-      }, (error) => {
-        console.error("Error fetching user data:", error);
-        setUserData(null);
-        setSubscribed(false);
-        setNotSubscribed(false);
-        setLoading(false); // Stop loading on error as well
-      });
-  
+      );
+
       // Cleanup function
       return () => unsubscribeSnapshot();
     });
-  
+
     return () => unsubscribeAuth();
   }, []);
-  
-  
 
   useEffect(() => {
     if (!userData?.reEditWeight) {
@@ -572,29 +684,29 @@ function App() {
 
     if (!weightAdded || isNaN(weightAdded)) {
       console.error("Invalid weight input!");
+      showNotification("Please enter a valid weight.", "error");
       return;
     }
+
+    setAddingWeight(true); // Start loading
 
     const clientWeightRef = collection(
       doc(db, "weightProgress", user.uid),
       "clientWeight"
     );
-    const userRef = doc(db, "users", user.uid); // Reference to the user document
+    const userRef = doc(db, "users", user.uid);
 
     try {
-      // Get current date & ensure next month calculation is correct
       const now = new Date();
       const nextMonth = new Date(now);
       nextMonth.setMonth(now.getMonth() + 1);
       if (nextMonth.getDate() !== now.getDate()) {
-        nextMonth.setDate(0); // Set to last day of next month if shifted
+        nextMonth.setDate(0);
       }
 
-      // Extract current month & year
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
 
-      // Query all weight entries
       const querySnapshot = await getDocs(clientWeightRef);
       let existingDoc = null;
 
@@ -614,32 +726,34 @@ function App() {
       });
 
       if (existingDoc) {
-        // Update existing weight entry for this month
         const weightDocRef = doc(clientWeightRef, existingDoc.id);
         await updateDoc(weightDocRef, {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        console.log("✅ Updated existing weight entry.");
+        showNotification("Weight updated successfully!", "success");
       } else {
-        // Create a new weight entry
         await addDoc(clientWeightRef, {
           weight: Number(weightAdded),
           date: Timestamp.fromDate(now),
         });
-        console.log("✅ Added new weight entry.");
+        showNotification("New weight added!", "success");
       }
 
-      // Update user document
       await updateDoc(userRef, {
         editedWeight: serverTimestamp(),
         weight: Number(weightAdded),
-        reEditWeight: Timestamp.fromDate(nextMonth), // ✅ Correct next edit date
+        reEditWeight: Timestamp.fromDate(nextMonth),
       });
 
-      console.log("✅ User weight updated!");
+      setTimeout(() => {
+        setOpenSettingsModal(false);
+      }, 1500); // delay in milliseconds (e.g., 1.5 seconds)
     } catch (error) {
       console.error("❌ Error updating weight:", error);
+      showNotification("Couldn't update weight. Please try again.", "error");
+    } finally {
+      setAddingWeight(false); // Always stop loading
     }
   }
 
@@ -667,16 +781,82 @@ function App() {
       </div>
     );
   }
-  
+
+  // const sectionRef = useRef(null);
+
+  // const scrollToSection = () => {
+  //   sectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // };
+
+  function cancelMembership() {
+    if (!user) {
+      console.error("User is not logged in.");
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+
+    updateDoc(userRef, {
+      paid: false,
+      paidLifetime: false,
+    })
+      .then(() => {
+        showNotification("Membership canceled successfully!", "success");
+        setSubscribed(false);
+        setTimeout(() => {
+          setOpenSettingsModal(false);
+        }, 2000); // 500ms delay (change this to your desired time)
+
+        setNotSubscribed(true);
+        setOpenCancelModal(false);
+        setUserData((prev) => ({ ...prev, paid: false }));
+        // console.log("Membership canceled successfully!");
+      })
+      .catch((error) => {
+        console.error("Error canceling membership:", error);
+        showNotification(
+          "Couldn't cancel membership. Please try again.",
+          "error"
+        );
+      });
+  }
+
+  const paymentMethods = [
+    // {
+    //   id: "wish-money",
+    //   // ✅ Brand is intentionally spelled "Whish"
+    //   name: "Whish Money",
+    //   icon: <Image alt="Whish Money" src={Whish} />,
+    //   description: "Pay with your Whish Money account",
+    // },
+    {
+      id: "omt",
+      name: "OMT (Online Money Transfer)",
+      icon: <Image alt="OMT Logo" src={OMT} />,
+      description: "Quick online bank transfer",
+    },
+    {
+      id: "western-union",
+      name: "Western Union",
+      icon: <Image alt="Western Union" src={western} className="western" />,
+      description: "Quick online bank transfer",
+    },
+    {
+      id: "crypto",
+      name: "Cryptocurrency",
+      icon: "🪙",
+      description: "BTC, ETH, USDT, and more",
+    },
+  ];
 
   return (
     <div>
-      {userData ? (
-        <Settings strokeWidth={1.5} className="settings" onClick={openModal} />
-      ) : (
-        // fallback content if userData or userData.paid is not available
-        <></>
-      )}
+      <Notification
+        type={notification.type}
+        message={notification.message}
+        isVisible={notification.visible}
+        onClose={hideNotification}
+      />
       {paymentModalOpen ? (
         <PaymentModal
           setPaymentModalOpen={setPaymentModalOpen}
@@ -717,12 +897,18 @@ function App() {
                   </span>
                 </div>
 
-                <div className="settings-information-item">
+                {/* <div className="settings-information-item">
                   <span className="settings-information-label">Password:</span>
                   <button className="settings-action-button settings-password-button">
                     Update Password
                   </button>
-                </div>
+                </div> */}
+                <Notification
+                  type={notification.type}
+                  message={notification.message}
+                  isVisible={notification.visible}
+                  onClose={hideNotification}
+                />
 
                 {userData && userData.paid ? (
                   <div className="settings-information-item">
@@ -735,20 +921,58 @@ function App() {
                         onChange={(e) => setWeightAdded(e.target.value)}
                         placeholder="Weight"
                       />
-                      <button
-                        className="settings-action-button settings-weight-button"
-                        onClick={editOrAddWeight}
-                      >
-                        Update
-                      </button>
+                      {addingWeight ? (
+                        <button className="settings-action-button settings-weight-button">
+                          Processing...
+                        </button>
+                      ) : (
+                        <button
+                          className="settings-action-button settings-weight-button"
+                          onClick={editOrAddWeight}
+                        >
+                          Update
+                        </button>
+                      )}
                     </div>
                   </div>
                 ) : (
                   <></>
                 )}
               </div>
+              {openCancelModal && (
+                <div className="modal-backdrop">
+                  <div className="modal">
+                    <h3>Are you sure you want to cancel your membership?</h3>
+                    <div className="modal-actions">
+                      <button
+                        // className="confirm-button"
+                        className="btn btn-primary"
+                        onClick={cancelMembership}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        className="btn btn-primary white"
+                        onClick={() => setOpenCancelModal(false)}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="settings-modal-footer">
+                {userData && userData.paid ? (
+                  <button
+                    onClick={() => setOpenCancelModal(true)}
+                    className="settings-action-button settings-logout-button"
+                  >
+                    Cancel Membership
+                  </button>
+                ) : (
+                  <></>
+                )}
                 <button
                   onClick={logout}
                   className="settings-action-button settings-logout-button"
@@ -761,6 +985,26 @@ function App() {
         </div>
       ) : (
         <></>
+      )}
+
+      {isOpen && (
+        <>
+          <div
+            className={`floating-nav-overlay ${isOpen ? "active" : ""}`}
+            onClick={closeSidebar}
+          ></div>
+
+          <div className={`floating-nav-panel ${isOpen ? "active" : ""}`}>
+            <nav className="floating-nav-links">
+              <a href="/">Home</a>
+              <a href="/createPlan">Create Plan</a>
+              <a href="/mealPlan">Meal Plan</a>
+              <a href="/workoutPlan">Workout Plan</a>
+              <a href="/workoutPlan">Progress Tracking</a>
+              <a href="/account">Account</a>
+            </nav>
+          </div>
+        </>
       )}
 
       <Modal
@@ -782,16 +1026,25 @@ function App() {
           <div className="btns-wrapper">
             {" "}
             {subscribed ? (
-              <Link href="/createPlan">
-                <button className="btn btn-primary">Create Plan</button>
-              </Link>
+              <GiHamburgerMenu
+                className="hamburger-icon"
+                onClick={openSidebar}
+              />
             ) : (
               <></>
             )}
             {notSubscribed ? (
-              <button className="btn btn-primary" onClick={openPaymentModal}>
-                Premium
-              </button>
+              <div className="buttonsWrapper">
+                <a className="btn btn-primary premium" href="#pricing">
+                  Premium
+                </a>
+                <button
+                  onClick={logout}
+                  className="settings-action-button settings-logout-button margin"
+                >
+                  <LogOut />
+                </button>
+              </div>
             ) : (
               <></>
             )}
@@ -801,11 +1054,11 @@ function App() {
                   onClick={() => setActiveModal("signIn")}
                   className="btn btn-primary"
                 >
-                  Sign In
+                  Login
                 </button>
                 <button
                   onClick={() => setActiveModal("tryFree")}
-                  className="btn btn-outline"
+                  className="btn btn-outline white"
                 >
                   Sign Up
                 </button>
@@ -1049,6 +1302,46 @@ function App() {
         </div>
       </section>
 
+      <section className="how-it-worksSub" id="how-it-worksSub">
+        <div className="container">
+          <div className="glow-ball ball-1"></div>
+          <div className="glow-ball ball-2"></div>
+
+          <div className="features-grid">
+            <a href="/createPlan/progressTracking" className="feature-card">
+              <div className="feature-icon">
+                <Activity />
+              </div>
+              <h3 className="feature-title">Progress Tracking</h3>
+              <p className="text-muted">
+                Monitor your progress and get AI-powered adjustments to optimize
+                results
+              </p>
+            </a>
+            <a href="/workoutPlan" className="feature-card">
+              <div className="feature-icon">
+                <Dumbbell />
+              </div>
+              <h3 className="feature-title">Custom Workouts</h3>
+              <p className="text-muted">
+                Receive personalized workout routines optimized for your fitness
+                level
+              </p>
+            </a>
+            <a href="/mealPlan" className="feature-card">
+              <div className="feature-icon">
+                <Utensils />
+              </div>
+              <h3 className="feature-title">Personalized Meal Plans</h3>
+              <p className="text-muted">
+                Get AI-generated meal plans tailored to your dietary preferences
+                and goals
+              </p>
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section className="pricing" id="pricing">
         <div className="container">
           <div className="section-header">
@@ -1060,35 +1353,12 @@ function App() {
           </div>
           <div className="pricing-grid">
             {/* Monthly Premium Plan */}
-            <div className="pricing-card popular">
-              <div className="popular-badge">Most Popular</div>
-              <div className="price-tier">Premium Plan</div>
-              <div className="price">
-                $14.99 <span>/month</span>
-              </div>
-              <ul className="pricing-features">
-                <li className="included">Advanced meal plans</li>
-                <li className="included">Custom workout routines</li>
-                <li className="included">Macro tracking</li>
-                <li className="included">Meal customization</li>
-                <li className="included">Progress analytics</li>
-                <li className="included">AI-powered recommendations</li>
-                {/* <li className="included">Premium video workouts</li> */}
-              </ul>
-              {userData && userData.paid ? (
-                <></>
-              ) : (
-                <button onClick={openPaymentModal} className="btn btn-primary">
-                  Get Premium
-                </button>
-              )}
-            </div>
 
             {/* New Plan (e.g., Yearly Premium Plan) */}
             <div className="pricing-card">
-              <div className="price-tier">Yearly Premium Plan</div>
+              <div className="price-tier">Premium Plan</div>
               <div className="price">
-                $149.99 <span>/year</span>
+                $29.99 <span>/month</span>
               </div>
               <ul className="pricing-features">
                 <li className="included">Advanced meal plans</li>
@@ -1100,22 +1370,212 @@ function App() {
                 {/* <li className="included">Premium video workouts</li> */}
               </ul>
 
-              {userData && userData.paid ? (
-                <></>
-              ) : (
-                <button className="btn btn-primary" onClick={openPaymentModal}>
+              {!user ? (
+                <button
+                  onClick={() => setActiveModal("signIn")} // 👈 opens sign up modal now
+                  className="btn btn-primary"
+                >
+                  Get Premium
+                </button>
+              ) : !userData?.paid ? (
+                <button
+                  onClick={() => setPaymentModalOpen(true)}
+                  className="btn btn-primary"
+                >
+                  Get Premium
+                </button>
+              ) : null}
+            </div>
+
+            <div className="pricing-card popular">
+              <div className="popular-badge">Get up to 45% off!</div>
+              <div className="price-tier">Yearly Premium Plan</div>
+              <div className="price">
+                $199.99 <span>/year</span>
+              </div>
+              <ul className="pricing-features">
+                <li className="included">Advanced meal plans</li>
+                <li className="included">Custom workout routines</li>
+                <li className="included">Macro tracking</li>
+                <li className="included">Meal customization</li>
+                <li className="included">Progress analytics</li>
+                <li className="included">AI-powered recommendations</li>
+                {/* <li className="included">Premium video workouts</li> */}
+              </ul>
+
+              {!user ? (
+                <button
+                  onClick={() => setActiveModal("signIn")} // 👈 opens sign up modal now
+                  className="btn btn-primary"
+                >
                   Get Yearly Premium
                 </button>
-              )}
+              ) : !userData?.paid ? (
+                <button
+                  onClick={() => setPaymentModalOpen(true)}
+                  className="btn btn-primary"
+                >
+                  Get Yearly Premium
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
       </section>
+      {paymentModalOpen && (
+        <div
+          className="paymo_overlay"
+          onClick={(e) => {
+            if (e.target.classList.contains("paymo_overlay")) {
+              setPaymentModalOpen(false);
+            }
+          }}
+        >
+          <div className="paymo_container">
+            {/* {isComplete ? (
+              <div className="paymo_success">
+                <div className="paymo_success_icon">✅</div>
+                <div className="paymo_success_title">Payment Successful!</div>
+                <div className="paymo_success_message">
+                  Your payment using {selectedMethod} has been processed.
+                </div>
+                <button
+                  className="paymo_button"
+                  onClick={() => setIsComplete(false)}
+                >
+                  Return to Payment Options
+                </button>
+              </div>
+            ) : ( */}
+            <>
+              <div className="paymo_header">
+                <div className="paymo_header_title">Select Payment Method</div>
+                <div className="paymo_header_subtitle">
+                  Choose your preferred payment option
+                </div>
+              </div>
+
+              <div className="paymo_body">
+                <form onSubmit={handleSubmit}>
+                  <div className="paymo_payment_options">
+                    {paymentMethods.map((method) => (
+                      <label
+                        key={method.id}
+                        className={`paymo_payment_option ${
+                          selectedMethod === method.name ? "paymo_selected" : ""
+                        }`}
+                      >
+                        <div className="paymo_icon">{method.icon}</div>
+                        <div className="paymo_payment_details">
+                          <div className="paymo_payment_name">
+                            {method.name}
+                          </div>
+                          <div className="paymo_payment_description">
+                            {method.description}
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          className="paymo_radio"
+                          checked={selectedMethod === method.name}
+                          onChange={() => setSelectedMethod(method.name)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary paymoBtn"
+                    disabled={!selectedMethod}
+                  >
+                    {selectedMethod
+                      ? `Pay with ${selectedMethod}`
+                      : "Select a Payment Method"}
+                  </button>
+                </form>
+              </div>
+            </>
+            {/* )} */}
+          </div>
+        </div>
+      )}
 
       <footer className="footer">
-        <div className="container">
-          <div className="footer-text">
-            © 2025 TrainifAI. All rights reserved.
+        <div className="container footer-grid">
+          <div className="footer-section">
+            <div className="footer-logo">TrainifAI</div>
+            <div className="footer-text">
+              © {new Date().getFullYear()} TrainifAI. All rights reserved.
+            </div>
+          </div>
+
+          {/* <div className="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+              <li>
+                <a href="/workoutPlan">Workouts</a>
+              </li>
+              <li>
+                <a href="/mealPlan">Meal Plans</a>
+              </li>
+            </ul>
+          </div> */}
+
+          <div className="footer-section">
+            <h4>Support</h4>
+            <ul>
+              <li>
+                <a href="/FAQ">FAQ</a>
+              </li>
+              {/* <li>
+                <a href="/contact">Contact</a>
+              </li> */}
+              <li>
+                <a href="/TermsOfServices">Terms of Service</a>
+              </li>
+              <li>
+                <a href="/PrivacyPolicy">Privacy Policy</a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="footer-section">
+            <h4>Stay Connected</h4>
+            <div className="social-icons">
+              <a
+                href="https://instagram.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Instagram className="tiktokLogo" />
+              </a>
+              <a
+                href="https://tiktok.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaTiktok className="tiktokLogo" />
+              </a>
+              <a
+                href="https://instagram.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaXTwitter className="tiktokLogo" />
+              </a>
+              <a
+                href="https://www.reddit.com/user/TrainifAI/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaRedditAlien className="tiktokLogo" />
+              </a>
+              <a href="mailto:trainifai@gmail.com.com">
+                <Mail className="mail tiktokLogo" />
+              </a>
+            </div>
           </div>
         </div>
       </footer>

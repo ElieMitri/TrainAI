@@ -11,9 +11,14 @@ import {
   ArrowLeft,
   BadgePlus,
   Link,
+  Instagram,
+  Mail,
 } from "lucide-react";
+import { FaTiktok } from "react-icons/fa";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Pie } from "react-chartjs-2";
+import { FaXTwitter } from "react-icons/fa6";
+import { FaRedditAlien } from "react-icons/fa";
 import {
   setDoc,
   doc,
@@ -37,6 +42,7 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import Notification from "../components/Notification";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -54,7 +60,7 @@ function Page() {
     fitnessGoal: "",
     dietaryPreference: "",
     activityLevel: "",
-    workoutLocation: "",
+    workoutLocation: "gym",
     allergies: "",
     healthProblems: "",
     hatedFood: [],
@@ -62,6 +68,26 @@ function Page() {
 
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [user, setUser] = useState(null);
+  const [notification, setNotification] = useState({
+    visible: false,
+    type: "info",
+    message: "",
+  });
+
+  const showNotification = (message, type = "info") => {
+    setNotification({
+      visible: true,
+      type,
+      message,
+    });
+  };
+
+  const hideNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -71,7 +97,10 @@ function Page() {
       [name]: value,
       allergies: name === "allergies" ? value.split(", ") : prevState.allergies,
       hatedFood: name === "hatedFood" ? value.split(", ") : prevState.hatedFood,
-      healthProblems: name === "healthProblems" ? value.split(", ") : prevState.healthProblems,
+      healthProblems:
+        name === "healthProblems"
+          ? value.split(", ")
+          : prevState.healthProblems,
     }));
   };
 
@@ -171,22 +200,22 @@ function Page() {
 
     switch (userData.dietaryPreference) {
       case "keto":
-        fats = (totalCalories * 0.7) / 9;
-        protein = (totalCalories * 0.25) / 4;
+        fats = (totalCalories * 0.75) / 9;
+        protein = (totalCalories * 0.2) / 4;
         carbs = (totalCalories * 0.05) / 4;
         break;
       case "vegan":
-        protein = (totalCalories * 0.25) / 4;
-        fats = (totalCalories * 0.2) / 9;
-        carbs = (totalCalories * 0.55) / 4;
+        protein = (totalCalories * 0.15) / 4;
+        fats = (totalCalories * 0.25) / 9;
+        carbs = (totalCalories * 0.6) / 4;
         break;
       case "balanced":
       case "no-preference":
       default:
         // Default for balanced or no preference diet
-        protein = (totalCalories * 0.3) / 4;
+        protein = (totalCalories * 0.2) / 4;
         fats = (totalCalories * 0.3) / 9;
-        carbs = (totalCalories * 0.4) / 4;
+        carbs = (totalCalories * 0.5) / 4;
         break;
     }
 
@@ -264,9 +293,14 @@ function Page() {
     const { mealPlan, totalNutrition } = generateMealPlan(userData);
     setGeneratedPlan({ workoutPlan, mealPlan, totalNutrition });
 
+    // Remove undefined values
+    const sanitizedUserData = Object.fromEntries(
+      Object.entries(userData).filter(([_, v]) => v !== undefined)
+    );
+
     try {
       await setDoc(doc(db, "personDetails", user.uid), {
-        ...userData,
+        ...sanitizedUserData, // Use sanitized data
         displayName: user.displayName,
         date: serverTimestamp(),
       });
@@ -274,7 +308,7 @@ function Page() {
       await setDoc(
         doc(db, "users", user.uid),
         { createdDetails: "true" },
-        { merge: true } // Ensures only this field is added/updated
+        { merge: true }
       );
 
       const now = new Date();
@@ -282,7 +316,7 @@ function Page() {
 
       const newWeightEntry = {
         date: serverTimestamp(),
-        weight: userData.weight,
+        weight: userData.weight ?? 0, // Ensure weight has a valid value
         reEditDate: Timestamp.fromDate(now),
       };
 
@@ -300,11 +334,13 @@ function Page() {
       await setDoc(doc(db, "personMacros", user.uid), {
         displayName: user.displayName,
         date: serverTimestamp(),
-        calories: totalNutrition.calories,
-        fats: totalNutrition.fats,
-        protein: totalNutrition.protein,
-        carbs: totalNutrition.carbs,
+        calories: totalNutrition.calories ?? 0,
+        fats: totalNutrition.fats ?? 0,
+        protein: totalNutrition.protein ?? 0,
+        carbs: totalNutrition.carbs ?? 0,
       });
+
+      showNotification("Goals generated successfully!", "success");
     } catch (error) {
       console.error("Error creating account:", error.message);
       alert(error.message);
@@ -314,7 +350,7 @@ function Page() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      console.log("User:", currentUser);
+      // console.log("User:", currentUser);
 
       if (currentUser) {
         const userDocRef = doc(db, "users", currentUser.uid);
@@ -332,7 +368,7 @@ function Page() {
                 setPutDetails(false);
               }
             } else {
-              console.log("No such user found!");
+              // console.log("No such user found!");
               setUserData(null);
             }
           },
@@ -409,12 +445,12 @@ function Page() {
           if (userData.paid) {
             setUserData(userData); // Set user data if the user has a valid subscription
           } else {
-            console.log("User does not have an active subscription or trial.");
+            // console.log("User does not have an active subscription or trial.");
             setUserData(null); // Reset user data if no active subscription
             router.push("/"); // Redirect to home if no active subscription
           }
         } else {
-          console.log("No such user found!");
+          // console.log("No such user found!");
           setUserData(null); // Reset user data if document does not exist
         }
       });
@@ -444,22 +480,23 @@ function Page() {
     );
 
     // Debugging
-    console.log("Today's Date:", today);
-    console.log("Today's Timestamp:", today.getTime());
-    console.log("Re-Edit Date:", normalizedEditDate);
-    console.log("Re-Edit Timestamp:", normalizedEditDate.getTime());
+    // console.log("Today's Date:", today);
+    // console.log("Today's Timestamp:", today.getTime());
+    // console.log("Re-Edit Date:", normalizedEditDate);
+    // console.log("Re-Edit Timestamp:", normalizedEditDate.getTime());
 
     if (today.getTime() >= normalizedEditDate.getTime()) {
       setEditAllowed(true);
-      console.log("Editing NOT allowed");
+      // console.log("Editing NOT allowed");
     } else {
       setEditAllowed(false);
-      console.log("Editing IS allowed");
+      // console.log("Editing IS allowed");
     }
   }, [userData]);
+  
 
   return (
-    <div className="min-h-screen">
+    <div className="page-wrapper">
       <nav className="nav">
         <div className="nav-container">
           <div className="nav-brand">
@@ -486,7 +523,7 @@ function Page() {
                     { icon: User, label: "Info" },
                     { icon: Utensils, label: "Diet" },
                     { icon: Activity, label: "Activity" },
-                    { icon: Home, label: "Location" },
+                    { icon: Home, label: "Days" },
                     { icon: BadgePlus, label: "Generate" },
                   ].map((item, index) => (
                     <React.Fragment key={item.label}>
@@ -605,7 +642,7 @@ function Page() {
                           <option value="no-preference">No Preference</option>
                         </select>
                       </div>
-                      <div className="form-group">
+                      {/* <div className="form-group">
                         <label className="form-label">Hated Foods</label>
                         <input
                           className="form-input"
@@ -624,7 +661,7 @@ function Page() {
                           onChange={handleInputChange}
                           placeholder="Enter allergies"
                         />
-                      </div>
+                      </div> */}
                     </div>
                   )}
 
@@ -657,7 +694,7 @@ function Page() {
                           </option>
                         </select>
                       </div>
-                      <div className="form-group">
+                      {/* <div className="form-group">
                         <label className="form-label">Health Problems</label>
                         <input
                           className="form-input"
@@ -666,7 +703,7 @@ function Page() {
                           onChange={handleInputChange}
                           placeholder="Enter Health Problems"
                         />
-                      </div>
+                      </div> */}
                     </div>
                   )}
 
@@ -685,19 +722,6 @@ function Page() {
                         <option value="4">4</option>
                         <option value="5">5</option>
                       </select>
-                      <label className="form-label">Workout Location</label>
-                      <select
-                        name="workoutLocation"
-                        value={userData.workoutLocation}
-                        onChange={handleInputChange}
-                        className="form-select"
-                        required
-                      >
-                        <option value="">Select location</option>
-                        <option value="home">Home</option>
-                        <option value="gym">Gym</option>
-                        <option value="both">Both</option>
-                      </select>
                     </div>
                   )}
 
@@ -710,7 +734,7 @@ function Page() {
                             setStep((prev) => Math.max(1, prev - 1))
                           }
                           className={`btn ${
-                            step === 1 ? "btn-disabled" : "btn-outline"
+                            step === 1 ? "btn-disabled white" : "white"
                           }`}
                           disabled={step === 1}
                         >
@@ -718,7 +742,9 @@ function Page() {
                         </button>
                         <button
                           type={step === 4 ? "submit" : "button"}
-                          onClick={() => step < 5 && setStep(step + 1)}
+                          onClick={() =>
+                            step < 4 && setStep((prevStep) => prevStep + 1)
+                          }
                           className="btn btn-primary"
                         >
                           {step === 4 ? "Generate Plan" : "Next"}
@@ -766,7 +792,7 @@ function Page() {
             )}
           </div>
 
-          {putDetails ? (
+          {/* {putDetails ? (
             <div className="features-grid">
               <a href="/createPlan/progressTracking" className="feature-card">
                 <div className="feature-icon">
@@ -802,14 +828,90 @@ function Page() {
             </div>
           ) : (
             <></>
-          )}
+          )} */}
         </main>
       </div>
 
       <footer className="footer">
-        <div className="container">
-          <div className="footer-text">
-            © 2025 TrainifAI . All rights reserved.
+        <div className="container footer-grid">
+          <div className="footer-section">
+            <div className="footer-logo">TrainifAI</div>
+            <div className="footer-text">
+              © {new Date().getFullYear()} TrainifAI. All rights reserved.
+            </div>
+          </div>
+
+          {/* <div className="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+              <li>
+                <a href="/workoutPlan">Workouts</a>
+              </li>
+              <li>
+                <a href="/mealPlan">Meal Plans</a>
+              </li>
+            </ul>
+          </div> */}
+
+          <div className="footer-section">
+            <h4>Support</h4>
+            <ul>
+              <li>
+                <a href="/FAQ">FAQ</a>
+              </li>
+              {/* <li>
+                <a href="/contact">Contact</a>
+              </li> */}
+              <li>
+                <a href="/TermsOfServices">Terms of Service</a>
+              </li>
+              <li>
+                <a href="/PrivacyPolicy">Privacy Policy</a>
+              </li>
+            </ul>
+          </div>
+
+          {/* <PrivacyModal
+            isOpen={showPrivacy}
+            onClose={() => setShowPrivacy(false)}
+          />
+          <TermsModal isOpen={showTerms} onClose={() => setShowTerms(false)} /> */}
+
+          <div className="footer-section">
+            <h4>Stay Connected</h4>
+            <div className="social-icons">
+              <a
+                href="https://instagram.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Instagram className="tiktokLogo" />
+              </a>
+              <a
+                href="https://tiktok.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaTiktok className="tiktokLogo" />
+              </a>
+              <a
+                href="https://instagram.com/trainif.ai"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaXTwitter className="tiktokLogo" />
+              </a>
+              <a
+                href="https://www.reddit.com/user/TrainifAI/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaRedditAlien className="tiktokLogo" />
+              </a>
+              <a href="mailto:trainifai@gmail.com.com">
+                <Mail className="mail tiktokLogo" />
+              </a>
+            </div>
           </div>
         </div>
       </footer>
