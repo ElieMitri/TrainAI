@@ -3700,9 +3700,9 @@ select:hover {
   }
 }
 @media (max-width: 768px) {
-  .faq-header {
+  /* .faq-header {
     padding: 3rem 1.5rem;
-  }
+  } */
 
   .faq-header h1 {
     font-size: 2rem;
