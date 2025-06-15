@@ -7,14 +7,13 @@ import {
   Home,
   User,
   Utensils,
-  
   Crown,
   Settings,
   LogOut,
   Instagram,
   Mail,
 } from "lucide-react";
-import { X, Eye, EyeOff, Lock,  ArrowRight, Loader2 } from 'lucide-react';
+import { X, Eye, EyeOff, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { GiHamburgerMenu } from "react-icons/gi";
 import Link from "next/link";
 import {
@@ -55,14 +54,7 @@ import Notification from "./components/Notification";
 // import TermsModal from "./components/TermsModal";
 import { FaTiktok } from "react-icons/fa";
 
-function Modal({
-  isOpen,
-  onClose,
-  type,
-  setActiveModal,
-  setSubscribed,
-  setNotSubscribed,
-}) {
+function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
   if (!isOpen) return null;
 
   const [isLogin, setIsLogin] = useState(true);
@@ -72,6 +64,7 @@ function Modal({
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
+  const [activeModal, setActiveModal] = useState(null);
   const [notification, setNotification] = useState({
     visible: false,
     type: "info",
@@ -254,10 +247,18 @@ function Modal({
     }
   }
 
+  function closeModal() {
+    onClose();
+    const nav = document.querySelector(".nav");
+    if (nav) {
+      nav.classList.remove("no-fixed");
+    }
+  }
+
   return (
     <div className="auth-modal-overlay" onClick={onClose}>
       <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="auth-modal__close" onClick={onClose}>
+        <button className="auth-modal__close" onClick={closeModal}>
           <X className="auth-modal__close-icon" />
         </button>
 
@@ -342,8 +343,6 @@ function Modal({
               <span className="form-error">{errors.password}</span>
             )}
           </div>
-
-    
 
           <button
             type="submit"
@@ -840,10 +839,6 @@ function App() {
     setPaymentModalOpen(true);
   }
 
-  if(activeModal === "signIn" || "logIn") {
-    
-  }
-
   if (loading) {
     return (
       <div className="loading-container">
@@ -919,6 +914,18 @@ function App() {
       description: "BTC, ETH, USDT, and more",
     },
   ];
+
+  function triggerSignin() {
+    setActiveModal("signIn");
+
+    const nav = document.querySelector(".nav");
+    if (nav) {
+      nav.classList.add("no-fixed");
+    }
+  }
+
+
+  
 
   return (
     <div>
@@ -1121,18 +1128,15 @@ function App() {
             )}
             {!user && (
               <div className="nav-buttons">
-                <button
-                  onClick={() => setActiveModal("signIn")}
-                  className="btn btn-primary"
-                >
+                <button onClick={triggerSignin} className="btn btn-primary">
                   Login
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveModal("tryFree")}
                   className="btn btn-outline white"
                 >
                   Sign Up
-                </button>
+                </button> */}
               </div>
             )}
             {userData && (userData.paid || userData.paidLifetime) && (

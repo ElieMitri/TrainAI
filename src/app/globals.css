@@ -3470,6 +3470,12 @@ select:hover {
   transition: box-shadow 0.3s ease, background 0.3s ease;
 }
 
+.nav.no-fixed {
+  /* position: static;  */
+  z-index: 0;
+}
+
+
 .hamburger-icon {
   font-size: 1.8rem; /* Adjust size */
   color: #594dfd; /* White or accent */
