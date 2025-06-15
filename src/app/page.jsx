@@ -57,14 +57,10 @@ import { FaTiktok } from "react-icons/fa";
 function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
   if (!isOpen) return null;
 
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(type === "signIn");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    confirmPassword: "",
-  });
   const [errors, setErrors] = useState({});
-  const [activeModal, setActiveModal] = useState(null);
   const [notification, setNotification] = useState({
     visible: false,
     type: "info",
@@ -75,30 +71,6 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
   const userPassword = useRef(null);
   const userName = useRef(null);
 
-  // Handle input changes (for confirmPassword and potential validation)
-  function handleInputChange(e) {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-
-  // Toggle between Sign In and Sign Up
-  function switchMode() {
-    setIsLogin(!isLogin);
-    setErrors({});
-    setFormData({ confirmPassword: "" });
-  }
-
-  // Show and hide notifications
-  const showNotification = (message, type = "info") => {
-    setNotification({ visible: true, type, message });
-  };
-
-  const hideNotification = () => {
-    setNotification((prev) => ({ ...prev, visible: false }));
-  };
-
-  // Cleanup overflow on unmount
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => {
@@ -106,8 +78,23 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
     };
   }, [isOpen]);
 
-  // Login
-  async function login(e) {
+  const showNotification = (message, type = "info") => {
+    setNotification({ visible: true, type, message });
+  };
+
+  const switchMode = () => {
+    setIsLogin((prev) => !prev);
+    setErrors({});
+  };
+
+  const closeModal = () => {
+    onClose();
+    document.body.style.overflow = "auto";
+    const nav = document.querySelector(".nav");
+    if (nav) nav.classList.remove("no-fixed");
+  };
+
+  const login = async (e) => {
     e.preventDefault();
     if (loading) return;
 
@@ -142,41 +129,33 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
       setSubscribed(userData.paid || false);
       setNotSubscribed(!userData.paid);
 
-      const nav = document.querySelector(".nav");
-      if (nav) {
-        nav.classList.remove("no-fixed");
-      }
-
-      onClose();
+      closeModal();
     } catch (error) {
       let message = "Login failed. Please try again.";
-
       switch (error.code) {
         case "auth/user-not-found":
           message = "No account found with this email.";
           break;
         case "auth/wrong-password":
-          message = "Password is incorrect. Please try again.";
+          message = "Password is incorrect.";
           break;
         case "auth/invalid-email":
-          message = "The email address format is invalid.";
+          message = "Invalid email format.";
           break;
         case "auth/too-many-requests":
-          message = "Too many login attempts. Try again later.";
+          message = "Too many attempts. Try later.";
           break;
         case "auth/network-request-failed":
-          message = "Network error. Please check your internet connection.";
+          message = "Network error. Check your connection.";
           break;
       }
-
       showNotification(message, "error");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  // Signup
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
 
@@ -185,18 +164,8 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
     const displayName = userName.current?.value;
 
     if (!isLogin) {
-      const confirmPassword = formData.confirmPassword;
-
-      if (!email || !password || !displayName || !confirmPassword) {
+      if (!email || !password || !displayName) {
         showNotification("Please fill in all fields.", "error");
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        setErrors((prev) => ({
-          ...prev,
-          confirmPassword: "Passwords do not match.",
-        }));
         return;
       }
 
@@ -219,27 +188,24 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
           paid: false,
         });
 
-        onClose();
+        closeModal();
       } catch (error) {
-        let message = "An unexpected error occurred.";
+        let message = "Signup failed.";
         switch (error.code) {
           case "auth/email-already-in-use":
-            message = "This email is already registered.";
+            message = "Email is already registered.";
             break;
           case "auth/invalid-email":
-            message = "Please enter a valid email address.";
+            message = "Enter a valid email.";
             break;
           case "auth/weak-password":
-            message = "Password should be at least 6 characters.";
-            break;
-          case "auth/missing-password":
-            message = "Please enter a password.";
+            message = "Password must be at least 6 characters.";
             break;
           case "auth/too-many-requests":
-            message = "Too many attempts. Try again later.";
+            message = "Too many attempts. Try later.";
             break;
           case "auth/network-request-failed":
-            message = "Network error. Check your connection.";
+            message = "Network error.";
             break;
         }
 
@@ -248,20 +214,12 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
         setLoading(false);
       }
     } else {
-      login(e); // Handle login if in login mode
+      await login(e);
     }
-  }
-
-  function closeModal() {
-    onClose();
-    const nav = document.querySelector(".nav");
-    if (nav) {
-      nav.classList.remove("no-fixed");
-    }
-  }
+  };
 
   return (
-    <div className="auth-modal-overlay" onClick={onClose}>
+    <div className="auth-modal-overlay" onClick={closeModal}>
       <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
         <button className="auth-modal__close" onClick={closeModal}>
           <X className="auth-modal__close-icon" />
@@ -293,7 +251,7 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
                   type="text"
                   name="name"
                   ref={userName}
-                  onChange={handleInputChange}
+                  onChange={() => {}}
                   className={`form-input ${
                     errors.name ? "form-input--error" : ""
                   }`}
@@ -312,7 +270,7 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
                 type="email"
                 name="email"
                 ref={userEmail}
-                onChange={handleInputChange}
+                onChange={() => {}}
                 className={`form-input ${
                   errors.email ? "form-input--error" : ""
                 }`}
@@ -330,7 +288,7 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
                 type={showPassword ? "text" : "password"}
                 name="password"
                 ref={userPassword}
-                onChange={handleInputChange}
+                onChange={() => {}}
                 className={`form-input ${
                   errors.password ? "form-input--error" : ""
                 }`}
@@ -361,13 +319,7 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
               </>
             ) : (
               <>
-                <span
-                  onClick={isLogin ? login : handleSubmit}
-                  style={{ cursor: "pointer" }}
-                >
-                  {isLogin ? "Sign In" : "Create Account"}
-                </span>
-
+                <span>{isLogin ? "Sign In" : "Create Account"}</span>
                 <ArrowRight className="auth-modal__submit-icon" />
               </>
             )}
@@ -403,6 +355,7 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
             <a href="#" className="auth-modal__terms-link">
               Privacy Policy
             </a>
+            .
           </p>
         )}
       </div>
@@ -933,6 +886,14 @@ function App() {
     if (nav) {
       nav.classList.add("no-fixed");
     }
+  }
+
+  function paymentsOpen() {
+    const nav = document.querySelector(".nav");
+    if (nav) {
+      nav.classList.add("no-fixed");
+    }
+    setActiveModal("signIn");
   }
 
   return (
@@ -1497,7 +1458,7 @@ function App() {
 
               {!user ? (
                 <button
-                  onClick={() => setActiveModal("signIn")} // 👈 opens sign up modal now
+                  onClick={paymentsOpen} // 👈 opens sign up modal now
                   className="btn btn-primary"
                 >
                   Get Premium
@@ -1530,7 +1491,7 @@ function App() {
 
               {!user ? (
                 <button
-                  onClick={() => setActiveModal("signIn")} // 👈 opens sign up modal now
+                  onClick={paymentsOpen} // 👈 opens sign up modal now
                   className="btn btn-primary"
                 >
                   Get Yearly Premium

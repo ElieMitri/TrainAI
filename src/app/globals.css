@@ -7032,7 +7032,7 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   width: 100%;
-  margin-bottom: 16px;
+  /* margin-bottom: 16px; */
 }
 
 .btn:hover {
