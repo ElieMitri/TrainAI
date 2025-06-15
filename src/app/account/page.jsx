@@ -195,7 +195,7 @@ export default function AccountPage() {
                 placeholder="Enter weight (kg)"
               />
               <button
-                className="account-weight__button"
+                className="btn btn-primary"
                 onClick={editOrAddWeight}
                 disabled={addingWeight}
               >

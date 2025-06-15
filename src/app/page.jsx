@@ -7,13 +7,14 @@ import {
   Home,
   User,
   Utensils,
-  X,
+  
   Crown,
   Settings,
   LogOut,
   Instagram,
   Mail,
 } from "lucide-react";
+import { X, Eye, EyeOff, Lock,  ArrowRight, Loader2 } from 'lucide-react';
 import { GiHamburgerMenu } from "react-icons/gi";
 import Link from "next/link";
 import {
@@ -64,31 +65,55 @@ function Modal({
 }) {
   if (!isOpen) return null;
 
-  const [loading, setLoading] = useState(false); // 🔹 Added loading state
-  const userEmail = useRef(null);
-  const userPassword = useRef(null);
-  const userName = useRef(null);
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    confirmPassword: "",
+  });
+  const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState({
     visible: false,
     type: "info",
     message: "",
   });
 
+  const userEmail = useRef(null);
+  const userPassword = useRef(null);
+  const userName = useRef(null);
+
+  // Handle input changes (for confirmPassword and potential validation)
+  function handleInputChange(e) {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+
+  // Toggle between Sign In and Sign Up
+  function switchMode() {
+    setIsLogin(!isLogin);
+    setErrors({});
+    setFormData({ confirmPassword: "" });
+  }
+
+  // Show and hide notifications
   const showNotification = (message, type = "info") => {
-    setNotification({
-      visible: true,
-      type,
-      message,
-    });
+    setNotification({ visible: true, type, message });
   };
 
   const hideNotification = () => {
-    setNotification((prev) => ({
-      ...prev,
-      visible: false,
-    }));
+    setNotification((prev) => ({ ...prev, visible: false }));
   };
 
+  // Cleanup overflow on unmount
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
+
+  // Login
   async function login(e) {
     e.preventDefault();
     if (loading) return;
@@ -124,7 +149,7 @@ function Modal({
       setSubscribed(userData.paid || false);
       setNotSubscribed(!userData.paid);
 
-      onClose(); // Close modal
+      onClose();
     } catch (error) {
       let message = "Login failed. Please try again.";
 
@@ -149,10 +174,10 @@ function Modal({
       showNotification(message, "error");
     } finally {
       setLoading(false);
-      document.body.style.overflowY = "auto";
     }
   }
 
+  // Signup
   async function handleSubmit(e) {
     e.preventDefault();
     if (loading) return;
@@ -161,178 +186,220 @@ function Modal({
     const password = userPassword.current?.value;
     const displayName = userName.current?.value;
 
-    if (!email || !password || !displayName) {
-      showNotification("Please fill in all fields.", "error");
-      return;
-    }
+    if (!isLogin) {
+      const confirmPassword = formData.confirmPassword;
 
-    setLoading(true);
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      await updateProfile(user, { displayName });
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email,
-        displayName,
-        date: serverTimestamp(),
-        paid: false,
-      });
-
-      onClose(); // Close modal
-    } catch (error) {
-      let message = "An unexpected error occurred.";
-
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          message = "This email is already registered.";
-          break;
-        case "auth/invalid-email":
-          message = "Please enter a valid email address.";
-          break;
-        case "auth/weak-password":
-          message = "Password should be at least 6 characters.";
-          break;
-        case "auth/missing-password":
-          message = "Please enter a password.";
-          break;
-        case "auth/internal-error":
-          message = "Something went wrong. Please try again.";
-          break;
-        case "auth/too-many-requests":
-          message = "Too many attempts. Try again later.";
-          break;
-        case "auth/network-request-failed":
-          message = "Network error. Check your connection.";
-          break;
+      if (!email || !password || !displayName || !confirmPassword) {
+        showNotification("Please fill in all fields.", "error");
+        return;
       }
 
-      showNotification(message, "error");
-    } finally {
-      setLoading(false);
-      document.body.style.overflowY = "auto";
+      if (password !== confirmPassword) {
+        setErrors((prev) => ({
+          ...prev,
+          confirmPassword: "Passwords do not match.",
+        }));
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const userCredential = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const user = userCredential.user;
+
+        await updateProfile(user, { displayName });
+
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          email: user.email,
+          displayName,
+          date: serverTimestamp(),
+          paid: false,
+        });
+
+        onClose();
+      } catch (error) {
+        let message = "An unexpected error occurred.";
+        switch (error.code) {
+          case "auth/email-already-in-use":
+            message = "This email is already registered.";
+            break;
+          case "auth/invalid-email":
+            message = "Please enter a valid email address.";
+            break;
+          case "auth/weak-password":
+            message = "Password should be at least 6 characters.";
+            break;
+          case "auth/missing-password":
+            message = "Please enter a password.";
+            break;
+          case "auth/too-many-requests":
+            message = "Too many attempts. Try again later.";
+            break;
+          case "auth/network-request-failed":
+            message = "Network error. Check your connection.";
+            break;
+        }
+
+        showNotification(message, "error");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      login(e); // Handle login if in login mode
     }
-  }
-
-  function closeModal() {
-    onClose(); // Make sure it's spelled the same as the prop
-
-    // Restore scroll behavior
-    document.body.style.overflow = "auto";
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal">
-        <Notification
-          type={notification.type}
-          message={notification.message}
-          isVisible={notification.visible}
-          onClose={hideNotification}
-        />
-        <button className="modal-close" onClick={closeModal}>
-          X
+    <div className="auth-modal-overlay" onClick={onClose}>
+      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="auth-modal__close" onClick={onClose}>
+          <X className="auth-modal__close-icon" />
         </button>
-        <div className="modal-header">
-          <h2 className="modal-title">
-            {type === "signIn" ? "Login" : "Sign Up"}
+
+        <div className="auth-modal__header">
+          <div className="auth-modal__logo">
+            <div className="auth-modal__logo-icon">
+              <User />
+            </div>
+          </div>
+          <h2 className="auth-modal__title">
+            {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
+          <p className="auth-modal__subtitle">
+            {isLogin
+              ? "Sign in to continue your fitness journey"
+              : "Join thousands achieving their fitness goals"}
+          </p>
         </div>
-        <form
-          onSubmit={type === "signIn" ? login : handleSubmit}
-          className="modal-form"
-        >
-          {type === "tryFree" && (
+
+        <form className="auth-modal__form" onSubmit={handleSubmit}>
+          {!isLogin && (
             <div className="form-group">
-              <label className="form-label" htmlFor="name">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                className="form-input"
-                placeholder="Enter your name"
-                required
-                ref={userName}
-              />
+              <label className="form-label">Full Name</label>
+              <div className="form-input-wrapper">
+                <User className="form-input-icon" />
+                <input
+                  type="text"
+                  name="name"
+                  ref={userName}
+                  onChange={handleInputChange}
+                  className={`form-input ${
+                    errors.name ? "form-input--error" : ""
+                  }`}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              {errors.name && <span className="form-error">{errors.name}</span>}
             </div>
           )}
+
           <div className="form-group">
-            <label className="form-label" htmlFor="email">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              className="form-input"
-              placeholder="Enter your email"
-              required
-              ref={userEmail}
-            />
+            <label className="form-label">Email Address</label>
+            <div className="form-input-wrapper">
+              <Mail className="form-input-icon" />
+              <input
+                type="email"
+                name="email"
+                ref={userEmail}
+                onChange={handleInputChange}
+                className={`form-input ${
+                  errors.email ? "form-input--error" : ""
+                }`}
+                placeholder="Enter your email"
+              />
+            </div>
+            {errors.email && <span className="form-error">{errors.email}</span>}
           </div>
+
           <div className="form-group">
-            <label className="form-label" htmlFor="password">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              className="form-input"
-              placeholder="Enter your password"
-              required
-              ref={userPassword}
-            />
+            <label className="form-label">Password</label>
+            <div className="form-input-wrapper">
+              <Lock className="form-input-icon" />
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                ref={userPassword}
+                onChange={handleInputChange}
+                className={`form-input ${
+                  errors.password ? "form-input--error" : ""
+                }`}
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                className="form-input-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
+            {errors.password && (
+              <span className="form-error">{errors.password}</span>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading
-              ? "Processing..."
-              : type === "signIn"
-              ? "Login"
-              : "Create Account"}
+
+    
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-modal__submit"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="auth-modal__submit-spinner" />
+                <span>{isLogin ? "Signing In..." : "Creating Account..."}</span>
+              </>
+            ) : (
+              <>
+                <span>{isLogin ? "Sign In" : "Create Account"}</span>
+                <ArrowRight className="auth-modal__submit-icon" />
+              </>
+            )}
           </button>
-        </form>
-        <div className="modal-footer">
-          {type === "signIn" ? (
-            <p>
-              Don't have an account?{" "}
-              <a
-                // href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onClose();
-                  setActiveModal("tryFree");
-                }}
-              >
-                Sign up
-              </a>
-            </p>
-          ) : (
-            <p>
-              Already have an account?{" "}
-              <a
-                // href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onClose();
-                  setActiveModal("signIn");
-                }}
-              >
-                Login
-              </a>
-            </p>
+
+          {isLogin && (
+            <button type="button" className="auth-modal__forgot">
+              Forgot your password?
+            </button>
           )}
+        </form>
+
+        <div className="auth-modal__switch">
+          <span className="auth-modal__switch-text">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}
+          </span>
+          <button
+            type="button"
+            className="auth-modal__switch-button"
+            onClick={switchMode}
+          >
+            {isLogin ? "Sign Up" : "Sign In"}
+          </button>
         </div>
+
+        {!isLogin && (
+          <p className="auth-modal__terms">
+            By creating an account, you agree to our{" "}
+            <a href="#" className="auth-modal__terms-link">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="auth-modal__terms-link">
+              Privacy Policy
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );
 }
+
 function App() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -771,6 +838,10 @@ function App() {
   function openPaymentModal() {
     document.body.style.overflowY = "hidden"; // Disable scrolling
     setPaymentModalOpen(true);
+  }
+
+  if(activeModal === "signIn" || "logIn") {
+    
   }
 
   if (loading) {
@@ -1302,45 +1373,87 @@ function App() {
         </div>
       </section>
 
-      <section className="how-it-worksSub" id="how-it-worksSub">
-        <div className="container">
-          <div className="glow-ball ball-1"></div>
-          <div className="glow-ball ball-2"></div>
+      {/* {userData.paid ? (
+        <section className="how-it-worksSub" id="how-it-worksSub">
+          <div className="container">
+            <div className="glow-ball ball-1"></div>
+            <div className="glow-ball ball-2"></div>
 
-          <div className="features-grid">
-            <a href="/createPlan/progressTracking" className="feature-card">
-              <div className="feature-icon">
-                <Activity />
-              </div>
-              <h3 className="feature-title">Progress Tracking</h3>
-              <p className="text-muted">
-                Monitor your progress and get AI-powered adjustments to optimize
-                results
-              </p>
-            </a>
-            <a href="/workoutPlan" className="feature-card">
-              <div className="feature-icon">
-                <Dumbbell />
-              </div>
-              <h3 className="feature-title">Custom Workouts</h3>
-              <p className="text-muted">
-                Receive personalized workout routines optimized for your fitness
-                level
-              </p>
-            </a>
-            <a href="/mealPlan" className="feature-card">
-              <div className="feature-icon">
-                <Utensils />
-              </div>
-              <h3 className="feature-title">Personalized Meal Plans</h3>
-              <p className="text-muted">
-                Get AI-generated meal plans tailored to your dietary preferences
-                and goals
-              </p>
-            </a>
+            <div className="features-grid">
+              <a href="/createPlan/progressTracking" className="feature-card">
+                <div className="feature-icon">
+                  <Activity />
+                </div>
+                <h3 className="feature-title">Progress Tracking</h3>
+                <p className="text-muted">
+                  Monitor your progress and get AI-powered adjustments to
+                  optimize results
+                </p>
+              </a>
+              <a href="/workoutPlan" className="feature-card">
+                <div className="feature-icon">
+                  <Dumbbell />
+                </div>
+                <h3 className="feature-title">Custom Workouts</h3>
+                <p className="text-muted">
+                  Receive personalized workout routines optimized for your
+                  fitness level
+                </p>
+              </a>
+              <a href="/mealPlan" className="feature-card">
+                <div className="feature-icon">
+                  <Utensils />
+                </div>
+                <h3 className="feature-title">Personalized Meal Plans</h3>
+                <p className="text-muted">
+                  Get AI-generated meal plans tailored to your dietary
+                  preferences and goals
+                </p>
+              </a>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="how-it-worksSub" id="how-it-worksSub">
+          <div className="container">
+            <div className="glow-ball ball-1"></div>
+            <div className="glow-ball ball-2"></div>
+
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <Activity />
+                </div>
+                <h3 className="feature-title">Progress Tracking</h3>
+                <p className="text-muted">
+                  Monitor your progress and get AI-powered adjustments to
+                  optimize results
+                </p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <Dumbbell />
+                </div>
+                <h3 className="feature-title">Custom Workouts</h3>
+                <p className="text-muted">
+                  Receive personalized workout routines optimized for your
+                  fitness level
+                </p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <Utensils />
+                </div>
+                <h3 className="feature-title">Personalized Meal Plans</h3>
+                <p className="text-muted">
+                  Get AI-generated meal plans tailored to your dietary
+                  preferences and goals
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )} */}
 
       <section className="pricing" id="pricing">
         <div className="container">
