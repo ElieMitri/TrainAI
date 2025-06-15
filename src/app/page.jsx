@@ -142,6 +142,11 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
       setSubscribed(userData.paid || false);
       setNotSubscribed(!userData.paid);
 
+      const nav = document.querySelector(".nav");
+      if (nav) {
+        nav.classList.remove("no-fixed");
+      }
+
       onClose();
     } catch (error) {
       let message = "Login failed. Please try again.";
@@ -356,7 +361,13 @@ function Modal({ isOpen, onClose, type, setSubscribed, setNotSubscribed }) {
               </>
             ) : (
               <>
-                <span>{isLogin ? "Sign In" : "Create Account"}</span>
+                <span
+                  onClick={isLogin ? login : handleSubmit}
+                  style={{ cursor: "pointer" }}
+                >
+                  {isLogin ? "Sign In" : "Create Account"}
+                </span>
+
                 <ArrowRight className="auth-modal__submit-icon" />
               </>
             )}
@@ -923,9 +934,6 @@ function App() {
       nav.classList.add("no-fixed");
     }
   }
-
-
-  
 
   return (
     <div>
